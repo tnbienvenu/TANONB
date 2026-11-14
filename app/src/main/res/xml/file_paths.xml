@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Rapports PDF/CSV générés temporairement pour le partage. -->
+    <cache-path name="exports" path="exports/" />
+</paths>

@@ -3,7 +3,7 @@
 agp = "8.13.2"
 kotlin = "2.3.21"
 ksp = "2.3.14"
-composeBom = "2026.09.00"
+composeBom = "2026.06.01" # dernier BOM compatible AGP 8.13 / compileSdk 36 (2026.08+ exige AGP 9.1)
 coreKtx = "1.17.0"
 activityCompose = "1.12.4"
 lifecycle = "2.10.0"
