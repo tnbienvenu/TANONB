@@ -12,6 +12,8 @@ data class OcrElement(
     val top: Float,
     val right: Float,
     val bottom: Float,
+    /** Vrai si le moteur de lecture signale lui-même une ambiguïté (ex. chiffre 7 segments décodé à un segment près). */
+    val uncertain: Boolean = false,
 ) {
     val height: Float get() = bottom - top
     val width: Float get() = right - left
@@ -125,7 +127,7 @@ object OcrParser {
         // Certains moteurs regroupent « SYS 128 » dans un même élément : on découpe.
         val tokens = elements.flatMap { splitElement(it) }
 
-        val candidates = tokens.mapNotNull { e -> parseNumber(e.text)?.let { Candidate(e, it.first, it.second) } }
+        val candidates = tokens.mapNotNull { e -> parseNumber(e.text)?.let { Candidate(e, it.first, it.second || e.uncertain) } }
         val sysLabel = tokens.firstOrNull { normalizeLabel(it.text) in SYS_LABELS }
         val diaLabel = tokens.firstOrNull { normalizeLabel(it.text) in DIA_LABELS }
         val pulLabel = tokens.firstOrNull { normalizeLabel(it.text) in PUL_LABELS }
@@ -250,6 +252,27 @@ object OcrParser {
         )
     }
 
+    /**
+     * Choisit entre deux lectures issues de moteurs différents (lecteur 7 segments et OCR généraliste).
+     * La plus complète et cohérente est retenue ; si les deux lisent des valeurs différentes pour un même champ,
+     * ce champ est marqué incertain et l'autre valeur est proposée en alternative.
+     */
+    fun combine(primary: OcrReading, secondary: OcrReading, quality: (OcrReading) -> Double): OcrReading {
+        val (best, other) = if (quality(secondary) > quality(primary)) secondary to primary else primary to secondary
+        fun merge(b: OcrField, o: OcrField): OcrField = when {
+            b.value == null || o.value == null -> b
+            b.value == o.value -> b.copy(confidence = minOf(0.99, b.confidence + 0.1))
+            else -> b.copy(uncertain = true, reason = "Lectures divergentes : ${b.value} / ${o.value}", alternatives = (listOf(o.value!!) + b.alternatives).distinct())
+        }
+        return best.copy(
+            systolic = merge(best.systolic, other.systolic),
+            diastolic = merge(best.diastolic, other.diastolic),
+            pulse = merge(best.pulse, other.pulse),
+            candidates = (best.candidates + other.candidates).distinct(),
+            rawText = best.rawText + "\n---\n" + other.rawText,
+        )
+    }
+
     private fun assignByLayout(candidates: List<Candidate>): Triple<Candidate?, Candidate?, Candidate?> {
         if (candidates.isEmpty()) return Triple(null, null, null)
         val maxH = candidates.maxOf { it.element.height }
@@ -301,7 +324,7 @@ object OcrParser {
         var x = e.left
         return parts.map { p ->
             val w = e.width * p.length / totalChars
-            val out = OcrElement(p, x, e.top, x + w, e.bottom)
+            val out = OcrElement(p, x, e.top, x + w, e.bottom, e.uncertain)
             x += w
             out
         }

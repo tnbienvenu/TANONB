@@ -141,3 +141,30 @@ class OcrParserTest {
         assertFalse(disagree.diastolic.uncertain)
     }
 }
+
+class OcrCombineTest {
+    private fun e(text: String, l: Float, t: Float, w: Float, h: Float) = com.cardiosuivi.domain.ocr.OcrElement(text, l, t, l + w, t + h)
+    private fun read(s: String, d: String, p: String?) = com.cardiosuivi.domain.ocr.OcrParser.parse(
+        listOfNotNull(e(s, 0f, 0f, 100f, 60f), e(d, 0f, 80f, 100f, 60f), p?.let { e(it, 40f, 160f, 50f, 30f) }),
+    )
+    private val q = com.cardiosuivi.domain.ocr.SevenSegmentReader::quality
+
+    @org.junit.Test
+    fun agreementKeepsValuesAndDisagreementIsFlagged() {
+        val same = com.cardiosuivi.domain.ocr.OcrParser.combine(read("125", "85", "78"), read("125", "85", null), q)
+        org.junit.Assert.assertEquals(125, same.systolic.value)
+        org.junit.Assert.assertEquals(78, same.pulse.value)
+        val diff = com.cardiosuivi.domain.ocr.OcrParser.combine(read("125", "85", "78"), read("126", "85", "78"), q)
+        org.junit.Assert.assertTrue(diff.systolic.uncertain)
+        org.junit.Assert.assertTrue(diff.systolic.alternatives.contains(126))
+        org.junit.Assert.assertTrue(!diff.diastolic.uncertain || diff.diastolic.value == 85)
+    }
+
+    @org.junit.Test
+    fun moreCompleteReadingWins() {
+        val empty = com.cardiosuivi.domain.ocr.OcrParser.parse(emptyList())
+        val r = com.cardiosuivi.domain.ocr.OcrParser.combine(empty, read("140", "90", "70"), q)
+        org.junit.Assert.assertEquals(140, r.systolic.value)
+        org.junit.Assert.assertEquals(70, r.pulse.value)
+    }
+}

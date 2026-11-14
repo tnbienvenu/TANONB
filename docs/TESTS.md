@@ -15,6 +15,8 @@
 |---|---|
 | `domain/.../StatisticsTest` | moyennes (3 mesures, 2 dernières, repli signalé), écart-type, amplitude, évolution entre prises, pression pulsée, pouls absent non inventé ; distinction moyenne de séance / journalière / mesures individuelles ; exclusion des séances en cours ; matin/soir et suffisance ; tendance (minimums, pente exacte) ; semaines et mois ; complétude (réalisées, incomplètes, manquées, à venir) ; dépassement d'objectif ; valeurs atypiques |
 | `domain/.../AlertEngineTest` | symptôme urgent → urgence même avec tension normale ; ≥ 180/110 → nouvelle mesure et contact ; diastolique seule ≥ 110 ; plausibilité ; écart > 10 mmHg ; objectif / seuil à domicile ; grade 2 ; hypotension et pouls avec symptômes ; séance normale sans alerte ; période < 3 jours non interprétée |
+| `domain/.../SevenSegmentReaderTest` | lecteur 7 segments sur écrans synthétiques (dégradé, bruit, flou, cadre, libellés, 4 échelles) : ≥ 90 % de lectures exactes sur 40 écrans, **aucune valeur fausse présentée comme sûre**, les 10 chiffres décodés, image vide → aucune valeur |
+| `domain/.../RealPhotoOcrTest` | évaluation sur photos réelles non versionnées : `CARDIO_OCR_SAMPLES=/dossier` (fichiers nommés `sys_dia_pouls.jpg`) |
 | `domain/.../OcrParserTest` | disposition avec libellés, sans libellés (position), confusions 7 segments, rangée côte à côte, valeurs inversées signalées sans permutation, rien de lisible → aucune valeur inventée, pouls absent, valeur implausible non proposée, rejet des heures/dates, consensus (accord / désaccord) |
 | `domain/.../ScheduleCalculatorTest` | calendrier par défaut, prochaines séances, même jour, changement d'heure (heure locale conservée), attribution matin/soir, seules les séances validées comptent, délai de grâce |
 | `domain/.../BackupAndExportTest` | chiffrement/déchiffrement, mauvais mot de passe, altération du contenu et de l'en-tête, mot de passe trop court, sorties aléatoires, 600 000 itérations ; CSV (séances en cours exclues, pouls vide, décimales, échappement, injection de formules) |
@@ -26,7 +28,7 @@
 
 ## Résultats obtenus dans l'environnement de développement (14/11/2026)
 
-- `:domain:test` : **52 tests, 0 échec**.
+- `:domain:test` : **59 tests, 0 échec** (+ 1 test sur photos réelles, ignoré sans dossier d'échantillons).
 - `:app:testDebugUnitTest` : **14 tests, 0 échec**.
 - `:app:lintDebug` : **0 erreur** (avertissements restants : versions plus récentes disponibles, suggestions de style).
 - `assembleDebug` et `assembleRelease` (R8) : **réussis** ; APK signés vérifiés avec `apksigner`.
@@ -54,3 +56,10 @@ L'environnement de compilation ne dispose ni d'émulateur (pas de virtualisation
 8. Créer une sauvegarde chiffrée, supprimer les données, restaurer.
 9. Activer le verrouillage biométrique, quitter l'application plus d'une minute, revenir.
 10. (Facultatif) Configurer une clé d'API, tester la connexion, poser une question.
+
+## Lecture des écrans LCD (version 1.0.1)
+
+Premier essai réel (Razr 50s, tensiomètre à écran LCD 7 segments, libellés en chinois) : ML Kit seul n'a rien lu.
+Un lecteur 7 segments dédié a été ajouté (`SevenSegmentReader`). Sur la photo de l'essai : 125/85/78 lus exactement,
+image entière comme zone recadrée. Sur 200 écrans synthétiques variés non utilisés pour la mise au point :
+80 % de lectures exactes, 0 valeur fausse non signalée.
