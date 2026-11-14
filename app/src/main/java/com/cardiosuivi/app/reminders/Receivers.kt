@@ -102,7 +102,13 @@ class ReminderActionReceiver : BroadcastReceiver() {
 
 /** Rétablit les alarmes après redémarrage, mise à jour, changement d'heure ou d'autorisation. */
 class BootReceiver : BroadcastReceiver() {
+    private val handled = setOf(
+        Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED, Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED,
+        "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED",
+    )
+
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action !in handled) return
         runAsync {
             val c = (context.applicationContext as CardioSuiviApp).container
             val s = c.settings.current()

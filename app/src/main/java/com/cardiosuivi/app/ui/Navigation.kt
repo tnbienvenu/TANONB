@@ -1,5 +1,13 @@
 package com.cardiosuivi.app.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.Surface
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -127,17 +135,27 @@ fun AppRoot(activity: MainActivity, container: AppContainer, settings: AppSettin
         return
     }
     val locked by container.appLock.locked.collectAsState()
-    if (settings.biometricLock && locked) {
-        LockScreen(activity) { container.appLock.unlock() }
-        return
-    }
     val vm: AppViewModel = viewModel(factory = AppViewModel.factory(container))
-    MainNavigation(vm, startRequests)
+    // L'écran de verrouillage est superposé : la navigation (et une éventuelle séance en cours) est conservée.
+    Box(Modifier.fillMaxSize()) {
+        MainNavigation(vm, startRequests)
+        if (settings.biometricLock && locked) {
+            Surface(Modifier.fillMaxSize()) { LockScreen(activity) { container.appLock.unlock() } }
+        }
+    }
 }
 
 @Composable
 private fun MainNavigation(vm: AppViewModel, startRequests: MutableStateFlow<StartRequest?>) {
     val nav = rememberNavController()
+    val context = LocalContext.current
+    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    LaunchedEffect(Unit) {
+        // Android 13+ : les rappels nécessitent l'autorisation de notifications.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && vm.settings.value.reminders.enabled &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
     val request by startRequests.collectAsState()
     LaunchedEffect(request) {
         request?.let {

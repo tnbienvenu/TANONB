@@ -11,13 +11,24 @@ import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-/** État de verrouillage de l'interface (protection biométrique facultative). */
-class AppLock {
+/**
+ * État de verrouillage de l'interface (protection biométrique facultative).
+ * Verrouillée au démarrage, puis à nouveau après [LOCK_DELAY_MS] passées en arrière-plan : les courtes
+ * sorties (sélecteur de photos, menu de partage, réglages système) ne verrouillent pas et n'interrompent pas une séance.
+ */
+class AppLock(private val clock: () -> Long = System::currentTimeMillis) {
     private val _locked = MutableStateFlow(true)
     val locked: StateFlow<Boolean> = _locked
+    private var backgroundAt = 0L
 
     fun unlock() { _locked.value = false }
-    fun onBackground() { _locked.value = true }
+    fun onBackground() { backgroundAt = clock() }
+    fun onForeground() {
+        if (backgroundAt > 0 && clock() - backgroundAt >= LOCK_DELAY_MS) _locked.value = true
+        backgroundAt = 0
+    }
+
+    companion object { const val LOCK_DELAY_MS = 60_000L }
 }
 
 object Biometrics {

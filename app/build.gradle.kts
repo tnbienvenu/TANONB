@@ -62,6 +62,17 @@ android {
         buildConfig = true
     }
 
+    // APK par architecture (arm64-v8a pour le Motorola Razr 50s et la plupart des téléphones récents)
+    // + un APK universel compatible avec tous les appareils.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
+        }
+    }
+
     packaging {
         resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}", "/META-INF/LICENSE*", "/META-INF/NOTICE*")
     }

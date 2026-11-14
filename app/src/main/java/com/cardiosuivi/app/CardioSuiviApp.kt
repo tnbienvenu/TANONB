@@ -28,6 +28,10 @@ class CardioSuiviApp : Application() {
             override fun onStop(owner: LifecycleOwner) {
                 container.appLock.onBackground()
             }
+
+            override fun onStart(owner: LifecycleOwner) {
+                container.appLock.onForeground()
+            }
         })
 
         appScope.launch(Dispatchers.IO) {

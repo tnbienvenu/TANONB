@@ -184,8 +184,14 @@ class SessionFlowViewModel(private val c: AppContainer) : ViewModel() {
         viewModelScope.launch {
             val (bmp, taken) = withContext(Dispatchers.IO) {
                 val b = ImageLoader.load(c.appContext, uri)
+                // Heure de prise EXIF (format « AAAA:MM:JJ HH:MM:SS », heure locale de l'appareil photo).
                 val t = runCatching {
-                    c.appContext.contentResolver.openInputStream(uri)?.use { s -> androidx.exifinterface.media.ExifInterface(s).dateTimeOriginal }
+                    c.appContext.contentResolver.openInputStream(uri)?.use { s ->
+                        androidx.exifinterface.media.ExifInterface(s).getAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME_ORIGINAL)
+                    }?.let { raw ->
+                        java.time.LocalDateTime.parse(raw.trim(), java.time.format.DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss"))
+                            .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    }
                 }.getOrNull()
                 b to t
             }

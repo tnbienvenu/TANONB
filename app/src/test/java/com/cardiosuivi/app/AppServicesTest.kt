@@ -102,3 +102,17 @@ class AppServicesTest {
         assertEquals(android.graphics.Color.WHITE, inv.getPixel(0, 0))
     }
 }
+
+class AppLockTest {
+    @org.junit.Test
+    fun shortExcursionDoesNotLockButLongAbsenceDoes() {
+        var now = 1_000_000L
+        val lock = com.cardiosuivi.app.security.AppLock { now }
+        org.junit.Assert.assertTrue(lock.locked.value) // verrouillée au démarrage
+        lock.unlock()
+        lock.onBackground(); now += 20_000; lock.onForeground()
+        org.junit.Assert.assertFalse(lock.locked.value) // sélecteur de photo, partage…
+        lock.onBackground(); now += 61_000; lock.onForeground()
+        org.junit.Assert.assertTrue(lock.locked.value)
+    }
+}

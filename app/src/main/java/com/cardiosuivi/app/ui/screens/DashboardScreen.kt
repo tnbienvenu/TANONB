@@ -134,6 +134,10 @@ fun DashboardScreen(vm: AppViewModel, nav: NavHostController) {
         }
 
         SectionCard("Prochaines séances programmées") {
+            if (settings.reminders.enabled && !com.cardiosuivi.app.reminders.Notifications.canPost(context)) {
+                Text("Les notifications sont bloquées : vous ne recevrez pas les rappels.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = { nav.navigate(Routes.PERMISSIONS) }) { Text("Vérifier les autorisations") }
+            }
             val next = vm.nextSlots(4)
             if (!settings.reminders.enabled || next.isEmpty()) {
                 Text("Aucun rappel programmé.")
