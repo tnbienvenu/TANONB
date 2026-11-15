@@ -18,6 +18,7 @@ class RealPhotoOcrTest {
         val dir = System.getenv("CARDIO_OCR_SAMPLES")?.let(::File)
         assumeTrue("CARDIO_OCR_SAMPLES non défini : test ignoré", dir != null && dir.isDirectory)
         var ok = 0
+        val stats = sortedMapOf<String, Int>()
         val files = dir!!.listFiles { f -> f.extension.lowercase() in setOf("jpg", "jpeg", "png") }!!.sorted()
         for (f in files) {
             val img = ImageIO.read(f) ?: continue
@@ -28,10 +29,16 @@ class RealPhotoOcrTest {
             val t0 = System.currentTimeMillis()
             val r = SevenSegmentReader.read(GrayImage(img.width, img.height, px)).reading
             val got = "${r.systolic.value}_${r.diastolic.value}_${r.pulse.value}"
-            val expected = f.nameWithoutExtension.substringBefore('-')
+            val expected = f.nameWithoutExtension.substringBefore("__").substringBefore('-')
             if (got == expected) ok++
-            println("${f.name}: lu $got (attendu $expected) en ${System.currentTimeMillis() - t0} ms ; candidats ${r.candidates}")
+            val truth = expected.split("_")
+            r.fields.forEachIndexed { i, fl ->
+                val v = fl.value?.toString()
+                val k = when { v == null -> "rejet"; v == truth.getOrNull(i) && !fl.uncertain -> "correct_sur"; v == truth.getOrNull(i) -> "correct_a_verifier"; !fl.uncertain -> "ERREUR_SURE"; else -> "erreur_a_verifier" }
+                stats[k] = (stats[k] ?: 0) + 1
+            }
+            println("${f.name}: lu $got (attendu $expected) incertains ${r.fields.map { it.uncertain }} en ${System.currentTimeMillis() - t0} ms")
         }
-        println("Résultat : $ok/${files.size} lectures exactes")
+        println("Résultat : $ok/${files.size} lectures exactes ; champs : $stats")
     }
 }

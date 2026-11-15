@@ -142,7 +142,7 @@ object SevenSegmentReader {
             )
             val rival = byText.keys.any { it != best.key && it.length == best.key.length }
             val rep = best.value.maxBy { it.height }
-            rep.copy(uncertain = rep.uncertain || best.value.all { it.uncertain } || rival)
+            rep.copy(uncertain = rep.uncertain || best.value.all { it.uncertain } || rival, support = if (rival) 1 else best.value.count { !it.uncertain })
         }
         // Un « nombre » qui englobe plusieurs autres nombres est un artefact (traits de rangées différentes fusionnés).
         return chosen.filter { e ->
@@ -388,7 +388,8 @@ object SevenSegmentReader {
         val x0 = b.x1 - cellW + 1 // aligne la cellule à droite (les chiffres sont justifiés à droite)
         val left = max(b.x0, x0)
         val cw = b.x1 - left + 1
-        fun dark(x: Int, y: Int) = x in 0 until w && mask[y * w + x]
+        val imgH = mask.size / w
+        fun dark(x: Int, y: Int) = x in 0 until w && y in 0 until imgH && mask[y * w + x]
         // Segment horizontal : proportion des colonnes centrales comportant un pixel sombre dans la bande.
         fun hSeg(y0f: Float, y1f: Float): Boolean {
             val ya = top + (y0f * h).toInt(); val yb = top + (y1f * h).toInt()

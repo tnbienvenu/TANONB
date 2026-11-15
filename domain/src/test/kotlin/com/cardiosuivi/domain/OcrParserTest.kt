@@ -168,3 +168,37 @@ class OcrCombineTest {
         org.junit.Assert.assertEquals(70, r.pulse.value)
     }
 }
+
+class OcrConfidenceTest {
+    private fun e(text: String, l: Float, t: Float, w: Float, h: Float, support: Int) = com.cardiosuivi.domain.ocr.OcrElement(text, l, t, l + w, t + h, support = support)
+
+    @org.junit.Test
+    fun wellSupportedLayoutReadingIsConfident() {
+        val r = com.cardiosuivi.domain.ocr.OcrParser.parse(listOf(e("125", 0f, 0f, 100f, 60f, 8), e("85", 20f, 80f, 80f, 60f, 8), e("78", 40f, 160f, 50f, 30f, 6)))
+        org.junit.Assert.assertFalse(r.systolic.uncertain)
+        org.junit.Assert.assertFalse(r.diastolic.uncertain)
+    }
+
+    @org.junit.Test
+    fun weaklySupportedOrIsolatedNumberStaysUncertain() {
+        val weak = com.cardiosuivi.domain.ocr.OcrParser.parse(listOf(e("125", 0f, 0f, 100f, 60f, 1), e("85", 20f, 80f, 80f, 60f, 1)))
+        org.junit.Assert.assertTrue(weak.systolic.uncertain)
+        // Un seul nombre lu (ex. le pouls) : jamais présenté comme une systolique sûre.
+        val alone = com.cardiosuivi.domain.ocr.OcrParser.parse(listOf(e("82", 40f, 160f, 50f, 30f, 9)))
+        org.junit.Assert.assertEquals(82, alone.systolic.value)
+        org.junit.Assert.assertTrue(alone.systolic.uncertain)
+    }
+}
+
+class SevenSegmentEdgeTest {
+    /** Régression A07 : chiffres touchant le bord inférieur de l'image (lecture hors limites auparavant). */
+    @org.junit.Test
+    fun digitsTouchingImageBorderDoNotCrash() {
+        val w = 120; val h = 60
+        val px = IntArray(w * h) { 200 }
+        fun rect(x0: Int, y0: Int, x1: Int, y1: Int) { for (y in y0 until y1) for (x in x0 until x1) px[y * w + x] = 30 }
+        // « 8 » collé en bas de l'image
+        rect(10, 10, 14, 34); rect(10, 36, 14, 60); rect(36, 10, 40, 34); rect(36, 36, 40, 60); rect(15, 6, 35, 10); rect(15, 33, 35, 37); rect(15, 56, 35, 60)
+        com.cardiosuivi.domain.ocr.SevenSegmentReader.read(com.cardiosuivi.domain.ocr.GrayImage(w, h, px))
+    }
+}

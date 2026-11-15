@@ -14,6 +14,8 @@ data class OcrElement(
     val bottom: Float,
     /** Vrai si le moteur de lecture signale lui-même une ambiguïté (ex. chiffre 7 segments décodé à un segment près). */
     val uncertain: Boolean = false,
+    /** Nombre de lectures indépendantes concordantes (réglages du lecteur 7 segments) ; 1 par défaut. */
+    val support: Int = 1,
 ) {
     val height: Float get() = bottom - top
     val width: Float get() = right - left
@@ -183,11 +185,19 @@ object OcrParser {
             warnings += "Champs identifiés d'après leur position sur l'écran : vérifiez que SYS, DIA et PUL ne sont pas intervertis."
         }
 
-        val base = if (method == AssignmentMethod.LABELS) 0.9 else 0.7
-        var sysF = toField(OcrFieldType.SYSTOLIC, sysC, base, PlausibilityBounds.SYSTOLIC)
-        var diaF = toField(OcrFieldType.DIASTOLIC, diaC, base, PlausibilityBounds.DIASTOLIC)
-        var pulF = toField(OcrFieldType.PULSE, pulC, base, PlausibilityBounds.PULSE)
+        var sysF = toField(OcrFieldType.SYSTOLIC, sysC, fieldBase(method, sysC), PlausibilityBounds.SYSTOLIC)
+        var diaF = toField(OcrFieldType.DIASTOLIC, diaC, fieldBase(method, diaC), PlausibilityBounds.DIASTOLIC)
+        var pulF = toField(OcrFieldType.PULSE, pulC, fieldBase(method, pulC), PlausibilityBounds.PULSE)
 
+        // 2 bis) Une attribution d'après la disposition n'est fiable que si la paire SYS/DIA est complète :
+        // un nombre isolé (ex. le pouls seul lu) pourrait être pris pour la systolique.
+        // SYS et DIA s'affichent dans la même taille : une grande différence de hauteur trahit une confusion (ex. pouls pris pour DIA).
+        val sizeMismatch = sysC != null && diaC != null &&
+            minOf(sysC!!.element.height, diaC!!.element.height) < 0.8f * maxOf(sysC!!.element.height, diaC!!.element.height)
+        if (method == AssignmentMethod.LAYOUT && (sysF.value == null || diaF.value == null || sizeMismatch)) {
+            fun weaken(f: OcrField) = if (f.value != null && !f.uncertain) f.copy(uncertain = true, confidence = minOf(f.confidence, 0.6), reason = f.reason ?: "Lecture partielle de l'écran : champ à vérifier") else f
+            sysF = weaken(sysF); diaF = weaken(diaF); pulF = weaken(pulF)
+        }
         // 3) Cohérence systolique > diastolique, sans permutation silencieuse.
         if (sysF.value != null && diaF.value != null && sysF.value!! <= diaF.value!!) {
             warnings += "La systolique lue (${sysF.value}) n'est pas supérieure à la diastolique (${diaF.value}) : champs probablement intervertis ou mal lus."
@@ -292,6 +302,19 @@ object OcrParser {
         }
     }
 
+    /** Nombre minimal de lectures concordantes pour qu'une valeur placée d'après la disposition soit jugée fiable. */
+    const val MIN_SUPPORT_FOR_CONFIDENCE = 4
+
+    /**
+     * Confiance de départ d'un champ : libellés lus → 0,9 ; disposition seule → 0,7 (à vérifier),
+     * sauf si la valeur est confirmée par plusieurs lectures indépendantes et décodée sans approximation → 0,85.
+     */
+    private fun fieldBase(method: AssignmentMethod, c: Candidate?): Double = when {
+        method == AssignmentMethod.LABELS -> 0.9
+        c != null && !c.corrected && c.element.support >= MIN_SUPPORT_FOR_CONFIDENCE -> 0.85
+        else -> 0.7
+    }
+
     private fun toField(type: OcrFieldType, c: Candidate?, base: Double, bounds: IntRange): OcrField {
         if (c == null) return emptyField(type, "Valeur non trouvée")
         if (c.value !in bounds) {
@@ -324,7 +347,7 @@ object OcrParser {
         var x = e.left
         return parts.map { p ->
             val w = e.width * p.length / totalChars
-            val out = OcrElement(p, x, e.top, x + w, e.bottom, e.uncertain)
+            val out = OcrElement(p, x, e.top, x + w, e.bottom, e.uncertain, e.support)
             x += w
             out
         }
