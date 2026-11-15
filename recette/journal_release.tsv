@@ -1,0 +1,12 @@
+RL00	APK release – installation	app-x86_64-release.apk signé	installation réussie	Performing Streamed Install / Success	RÉUSSI	journal adb
+RL01	Release – démarrage	premier lancement	avertissement initial affiché	affiché	RÉUSSI	journal adb
+RL02	Release – écran protégé	capture d'écran système	capture noire (FLAG_SECURE actif par défaut)	niveaux de gris (0, 0)	RÉUSSI	/tmp/rl_secure.png
+RL03	Release – tableau de bord	acceptation	tableau de bord	affiché	RÉUSSI	journal adb
+RL04-1	Release – saisie de mesure	142/91/71	« Mesure 1 enregistrée »	OK	RÉUSSI	journal adb
+RL04-2	Release – saisie de mesure	138/88/69	« Mesure 2 enregistrée »	OK	RÉUSSI	journal adb
+RL05	Release – calculs	142/91/71 et 138/88/69	moyenne 140,0/89,5 · 70,0	conforme	RÉUSSI	journal adb
+RL06	Release – enregistrement	séance incomplète	écran « Séance enregistrée »	OK	RÉUSSI	journal adb
+RL07	Release – sérialisation JSON (R8)	aperçu « Données transmises »	JSON du contexte affiché sans plantage	affiché	RÉUSSI	journal adb
+RL08	Release – rapport PDF	période 30 jours	« Rapport PDF généré. »	OK	RÉUSSI	journal adb
+RL09	Release – plantages	journal crash du système	aucun plantage de com.cardiosuivi.app	aucun	RÉUSSI	journal adb
+RL10	Release – persistance (processus tué)	force-stop puis relance	séance 140/90 toujours dans l'historique (base chiffrée)	présente	RÉUSSI	journal adb

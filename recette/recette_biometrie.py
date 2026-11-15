@@ -6,6 +6,8 @@ from pilote_adb import *
 
 PKG = sys.argv[1] if len(sys.argv) > 1 else "com.cardiosuivi.app.debug"
 out = sys.argv[2] if len(sys.argv) > 2 else "/tmp/recette_bio.tsv"
+import atexit
+atexit.register(lambda: open(out, "w").write("\n".join(LOG) + "\n"))
 
 
 def finger(n=1):
@@ -56,7 +58,11 @@ if added:
     if wait("Bienvenue dans CardioSuivi", 60):
         for _ in range(3):
             if find("J'ai compris") is None: scroll_down()
-        tap("J'ai compris"); tap("Commencer", exact=True)
+        tap("J'ai compris")
+        for _ in range(4):
+            if find("Commencer", exact=True) is not None: break
+            scroll_down()
+        tap("Commencer", exact=True)
     wait("NOUVELLE SÉANCE", 240)
     tap("Plus"); tap("Paramètres et sécurité")
     tap("Verrouillage biométrique")
