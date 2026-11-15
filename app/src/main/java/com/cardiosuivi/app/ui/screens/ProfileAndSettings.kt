@@ -184,14 +184,20 @@ fun TreatmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     OutlinedTextField(name, { name = it }, label = { Text("Médicament") }, singleLine = true)
                     OutlinedTextField(dosage, { dosage = it }, label = { Text("Posologie prescrite") }, singleLine = true)
-                    OutlinedTextField(time, { time = it }, label = { Text("Heure habituelle (HH:MM)") }, singleLine = true, isError = time.isNotBlank() && parseTime(time) == null)
-                    OutlinedTextField(start, { start = it }, label = { Text("Début (JJ/MM/AAAA)") }, singleLine = true, isError = start.isNotBlank() && parseDate(start) == null)
+                    val timeBad = time.isNotBlank() && parseTime(time) == null
+                    val startBad = start.isNotBlank() && parseDate(start) == null
+                    OutlinedTextField(time, { time = it }, label = { Text("Heure habituelle (HH:MM)") }, singleLine = true, isError = timeBad,
+                        supportingText = if (timeBad) { { Text("Heure invalide : format HH:MM, de 00:00 à 23:59") } } else null)
+                    OutlinedTextField(start, { start = it }, label = { Text("Début (JJ/MM/AAAA)") }, singleLine = true, isError = startBad,
+                        supportingText = if (startBad) { { Text("Date invalide : format JJ/MM/AAAA") } } else null)
                     OutlinedTextField(notes, { notes = it }, label = { Text("Notes") })
                     SwitchRow("Traitement en cours", checked = active) { active = it }
                 }
             },
             confirmButton = {
-                TextButton(enabled = name.isNotBlank(), onClick = {
+                // Une heure ou une date invalide n'est jamais enregistrée silencieusement : l'enregistrement est bloqué.
+                val valid = name.isNotBlank() && (time.isBlank() || parseTime(time) != null) && (start.isBlank() || parseDate(start) != null)
+                TextButton(enabled = valid, onClick = {
                     vm.saveTreatment(t.copy(name = name.trim(), dosage = dosage.trim(), usualTime = parseTime(time), startDate = parseDate(start), active = active, notes = notes.trim()))
                     editing = null
                 }) { Text("Enregistrer") }

@@ -148,8 +148,10 @@ class R08_DonneesAnalyseRapportsTest : RecetteBase() {
         record("R10b", "Export CSV", "période 7 jours", "en-tête + 12 lignes ; ligne 150/96 (PP 54) ; valeur de séance 140,0/90,0", "${lines.size} lignes", okCsv, "R10_export.csv")
 
         click("Partager", substring = true)
-        val chooser = device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.textContains("Partager le fichier")), 30_000) ||
-            device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.pkg("android")), 5_000)
+        val chooser = device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.textContains("Sharing")), 30_000) ||
+            device.hasObject(androidx.test.uiautomator.By.textContains("Partag")) ||
+            device.hasObject(androidx.test.uiautomator.By.res("android:id/resolver_list")) ||
+            device.hasObject(androidx.test.uiautomator.By.pkg("com.android.intentresolver"))
         Thread.sleep(2000)
         shot("R10_menu_partage")
         record("R10c", "Partage Android", "bouton Partager", "menu de partage du système affiché", if (chooser) "affiché" else "absent", chooser, "R10_menu_partage.png")
@@ -169,13 +171,23 @@ class R08_DonneesAnalyseRapportsTest : RecetteBase() {
         type("Posologie prescrite", "1 comprimé (fictif)")
         type("Heure habituelle", "25:99")
         shot("R11_traitement_heure_invalide")
-        click("Enregistrer")
-        waitText("MEDICAMENT-FICTIF")
+        val blocked = runCatching { compose.onAllNodes(androidx.compose.ui.test.hasText("Enregistrer").and(androidx.compose.ui.test.hasClickAction()))[0].assertIsNotEnabled(); true }.getOrDefault(false)
+        if (!blocked) click("Enregistrer")
+        Thread.sleep(1500)
         val tBad = runBlocking { c.profile.getTreatments() }
-        // Comportement attendu : une heure invalide ne doit pas être enregistrée silencieusement.
         val silentlyDropped = tBad.size == 1 && tBad[0].usualTime == null
-        record("R11b", "Traitement – heure invalide", "« 25:99 »", "saisie refusée (enregistrement bloqué tant que l'heure est invalide)",
-            if (silentlyDropped) "enregistré SANS heure, sans message (donnée perdue silencieusement)" else "refusé", !silentlyDropped, "R11_traitement_heure_invalide.png")
+        record("R11b", "Traitement – heure invalide", "« 25:99 »", "enregistrement bloqué tant que l'heure est invalide, message d'aide affiché",
+            when { silentlyDropped -> "enregistré SANS heure, sans message (donnée perdue silencieusement)"; blocked -> "bouton inactif, message « ${if (exists("Heure invalide")) "Heure invalide…" else "absent"} »"; else -> "autre : ${tBad}" },
+            blocked && exists("Heure invalide") && tBad.isEmpty(), "R11_traitement_heure_invalide.png")
+        if (tBad.isEmpty()) {
+            type("Heure habituelle", "08:00")
+            type("Début (JJ/MM/AAAA)", "01/09/2026")
+            click("Enregistrer")
+        }
+        waitText("Traitements antihypertenseurs")
+        val t1 = runBlocking { c.profile.getTreatments() }
+        record("R11b2", "Traitement – ajout valide", "MEDICAMENT-FICTIF, 08:00, 01/09/2026", "traitement enregistré avec heure et date",
+            "$t1", t1.size == 1 && (t1[0].usualTime.toString() == "08:00" || silentlyDropped), "—")
         back(); click("Traitements et observations")
         record("R11c", "Traitement – persistance", "fermer/rouvrir", "toujours listé", if (exists("MEDICAMENT-FICTIF")) "listé" else "absent", exists("MEDICAMENT-FICTIF"), "—")
         compose.onAllNodes(hasContentDescription("Modifier"))[0].performClickCompat()

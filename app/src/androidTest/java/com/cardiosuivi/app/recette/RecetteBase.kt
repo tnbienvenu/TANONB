@@ -79,7 +79,19 @@ abstract class RecetteBase {
 
     /** Réinitialise toutes les données et prépare les paramètres (écran non protégé pour permettre les captures). */
     protected fun resetApp(onboarding: Boolean = true, secure: Boolean = false) = runBlocking {
-        scenario?.close()
+        runCatching { scenario?.close() }
+        scenario = null
+        // Ferme toute activité encore ouverte (fenêtres système, singleTask) pour repartir d'un état neuf.
+        repeat(3) { device.pressBack(); Thread.sleep(300) }
+        device.pressHome()
+        instr.runOnMainSync {
+            androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry.getInstance()
+                .getActivitiesInStage(androidx.test.runner.lifecycle.Stage.RESUMED)
+                .plus(androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(androidx.test.runner.lifecycle.Stage.PAUSED))
+                .plus(androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(androidx.test.runner.lifecycle.Stage.STOPPED))
+                .forEach { it.finish() }
+        }
+        Thread.sleep(2000)
         c.destroyAllData()
         if (onboarding) c.settings.setOnboardingAccepted()
         c.settings.setSecureScreen(secure)
