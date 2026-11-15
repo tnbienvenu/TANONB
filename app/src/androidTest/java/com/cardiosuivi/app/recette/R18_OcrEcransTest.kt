@@ -115,7 +115,7 @@ class R18_OcrEcransTest : RecetteBase() {
         record("R20b", "Diagnostic des autorisations", "notifications et alarmes exactes refusées", "deux lignes en erreur avec boutons de réglage", if (diag) "conforme" else "non conforme", diag, "R20_diagnostic.png")
         record("R20c", "Alarmes exactes refusées", "appops SCHEDULE_EXACT_ALARM deny", "repli sur alarme approchée (pas de plantage)", "canScheduleExact=${c.reminderScheduler.canScheduleExact()}",
             !c.reminderScheduler.canScheduleExact() && c.reminderScheduler.rescheduleAll(runBlocking { c.settings.current().reminders }).isNotEmpty(), "—")
-        back(); click("Accueil")
+        back(); tab("Accueil")
         click("Commencer une séance")
         click("Je suis déjà reposé(e) : commencer")
         answerPermissionDialog(allow = false, timeout = 20_000)
@@ -141,7 +141,7 @@ class R18_OcrEcransTest : RecetteBase() {
         val kept = exists("ROTATION-FICTIF")
         record("R21a", "Rotation – formulaire non enregistré", "saisie « ROTATION-FICTIF » puis rotation", "saisie conservée", if (kept) "conservée" else "PERDUE", kept, "R21_profil_paysage.png")
         device.setOrientationNatural(); Thread.sleep(5000)
-        back(); click("Accueil")
+        back(); tab("Accueil")
         // Séance en cours puis rotation
         click("Commencer une séance")
         click("Je suis déjà reposé(e) : commencer")
