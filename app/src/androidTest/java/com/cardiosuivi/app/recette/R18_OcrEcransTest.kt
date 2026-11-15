@@ -102,6 +102,7 @@ class R18_OcrEcransTest : RecetteBase() {
         shell("pm revoke ${ctx.packageName} android.permission.CAMERA")
         shell("pm revoke ${ctx.packageName} android.permission.POST_NOTIFICATIONS")
         shell("appops set ${ctx.packageName} SCHEDULE_EXACT_ALARM deny")
+        permissionAnswer = false // toute fenêtre d'autorisation sera refusée dans ce scénario
         relaunch()
         Thread.sleep(2000)
         answerPermissionDialog(allow = false, timeout = 10_000)

@@ -47,13 +47,32 @@ abstract class RecetteBase {
     /** Réponse à la fenêtre système d'autorisation si elle apparaît (true = autoriser). */
     var permissionAnswer = true
 
+    private val allowIds = listOf(
+        "com.android.permissioncontroller:id/permission_allow_button",
+        "com.android.permissioncontroller:id/permission_allow_foreground_only_button",
+        "com.android.permissioncontroller:id/permission_allow_one_time_button",
+    )
+    private val denyIds = listOf(
+        "com.android.permissioncontroller:id/permission_deny_button",
+        "com.android.permissioncontroller:id/permission_deny_and_dont_ask_again_button",
+    )
+
+    /** Répond à une fenêtre système d'autorisation si elle est affichée. */
+    fun tryAnswerPermission(allow: Boolean = permissionAnswer): Boolean {
+        for (id in if (allow) allowIds else denyIds) {
+            device.findObject(By.res(id))?.let { it.click(); Thread.sleep(1500); return true }
+        }
+        return false
+    }
+
     fun answerPermissionDialog(allow: Boolean = permissionAnswer, timeout: Long = 15_000): Boolean {
         lastSysCheck = 0; runCatching { dismissSystemAnr() }
-        val id = if (allow) "com.android.permissioncontroller:id/permission_allow_button" else "com.android.permissioncontroller:id/permission_deny_button"
-        val b = device.wait(Until.findObject(By.res(id)), timeout) ?: return false
-        b.click()
-        Thread.sleep(1500)
-        return true
+        val t0 = System.currentTimeMillis()
+        while (System.currentTimeMillis() - t0 < timeout) {
+            if (tryAnswerPermission(allow)) return true
+            Thread.sleep(1000)
+        }
+        return false
     }
 
     protected val outDir: File by lazy { File(ctx.getExternalFilesDir(null), "recette").apply { mkdirs() } }
@@ -91,6 +110,9 @@ abstract class RecetteBase {
         val now = System.currentTimeMillis()
         if (now - lastSysCheck < 4000) return
         lastSysCheck = now
+        if (device.hasObject(By.pkg("com.google.android.permissioncontroller")) || device.hasObject(By.pkg("com.android.permissioncontroller"))) {
+            tryAnswerPermission()
+        }
         if (device.hasObject(By.textContains("isn't responding")) || device.hasObject(By.textContains("ne répond pas"))) {
             (device.findObject(By.text("Wait")) ?: device.findObject(By.text("Attendre")))?.click()
             Thread.sleep(800)
