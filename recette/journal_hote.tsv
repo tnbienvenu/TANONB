@@ -1,0 +1,1 @@
+RB01	Redémarrage du téléphone	arrêt brutal de l'émulateur (perte des alarmes système) puis démarrage à froid	alarmes reprogrammées sans ouvrir l'application	2 alarmes (18/11 07:00 et 19:00) recréées 243 s après la fin du démarrage ; processus lancé « for broadcast BootReceiver »	RÉUSSI	preuves/RB_alarmes_apres_redemarrage.txt

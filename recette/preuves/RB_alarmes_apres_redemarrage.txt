@@ -1,0 +1,4 @@
+    RTC_WAKEUP #18: Alarm{6212713 type 0 origWhen 1794985200000 whenElapsed 247014000 com.cardiosuivi.app.debug}
+      type=RTC_WAKEUP origWhen=2026-11-18 07:00:00.000 window=+10m0s0ms repeatInterval=0 count=0 flags=0x0
+    RTC_WAKEUP #19: Alarm{96dbc4e type 0 origWhen 1795028400000 whenElapsed 290214000 com.cardiosuivi.app.debug}
+      type=RTC_WAKEUP origWhen=2026-11-18 19:00:00.000 window=+10m0s0ms repeatInterval=0 count=0 flags=0x0
