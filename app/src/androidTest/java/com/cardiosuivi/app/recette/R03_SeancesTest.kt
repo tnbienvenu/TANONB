@@ -52,7 +52,7 @@ class R03_SeancesTest : RecetteBase() {
         enterMeasurement("140", "90", "74")
         click("Mesurer maintenant")
         enterMeasurement("136", "88", "72")
-        waitText("Calculs de la séance", timeout = 90_000)
+        waitText("Moyennes de la séance", timeout = 90_000)
         shot("R03_resume_haut")
         val checks = mapOf(
             "moyenne 3" to exists("141,3/90,7 · 74,0"),
@@ -225,8 +225,8 @@ class R03_SeancesTest : RecetteBase() {
         val dialer = device.currentPackageName
         record("R07c", "Appel des secours", "bouton « Appeler les secours »", "ouverture du composeur avec le numéro (sans appel automatique)",
             "application au premier plan : $dialer", dialer != ctx.packageName, "—")
-        device.pressBack(); Thread.sleep(2000)
-        if (device.currentPackageName != ctx.packageName) { device.pressBack(); Thread.sleep(2000) }
+        // Retour depuis le composeur (le nombre d'appuis varie selon l'état de l'application Téléphone).
+        repeat(5) { if (device.currentPackageName != ctx.packageName) { device.pressBack(); Thread.sleep(2500) } }
         waitText("Symptômes associés", timeout = 60_000)
         click("Enregistrer la séance incomplète")
         waitText("Recommandation urgente")
