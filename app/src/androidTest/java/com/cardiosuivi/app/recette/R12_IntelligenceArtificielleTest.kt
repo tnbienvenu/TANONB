@@ -78,7 +78,7 @@ class R12_IntelligenceArtificielleTest : RecetteBase() {
             exists("Connexion réussie") && !testBody.contains("131") && !testBody.contains("RECETTE") && testReq.getHeader("x-api-key") == "sk-ant-TEST-FICTIVE-0000",
             "R12_test_connexion.png")
 
-        back()
+        navigateUp()
         type("Votre question", "Comment ma tension évolue-t-elle ?")
         click("Demander à l'IA")
         waitText("Consentement à la transmission")
@@ -139,7 +139,7 @@ class R12_IntelligenceArtificielleTest : RecetteBase() {
         click("Configurer l'IA")
         click("Retirer le consentement")
         waitText("Non donné")
-        back()
+        navigateUp()
         c.aiBaseUrlOverride = server.url("/").toString().trimEnd('/')
         val n2 = server.requestCount
         type("Votre question", "Question après retrait")

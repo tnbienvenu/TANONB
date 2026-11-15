@@ -183,6 +183,14 @@ abstract class RecetteBase {
         }
     }
 
+    /** Flèche « Retour » de la barre de titre (navigation explicite, comme un utilisateur). */
+    fun navigateUp() {
+        hideKeyboard()
+        compose.onAllNodes(androidx.compose.ui.test.hasContentDescription("Retour"))[0].performClick()
+        compose.waitForIdle()
+        Thread.sleep(800)
+    }
+
     fun back() {
         hideKeyboard()
         instr.uiAutomation.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK)
