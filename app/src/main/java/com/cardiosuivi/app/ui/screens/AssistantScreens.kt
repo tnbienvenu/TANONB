@@ -1,6 +1,8 @@
 package com.cardiosuivi.app.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -174,8 +176,12 @@ fun AiSettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
     ScreenScaffold("Configuration de l'IA", onBack = onBack) {
         SectionCard("Fournisseur") {
             AiProvider.entries.forEach { p ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = settings.aiProvider == p, onClick = { scope.launch { vm.c.settings.setAiProvider(p) } })
+                // Toute la ligne est sélectionnable (cible tactile plus grande, accessibilité).
+                Row(
+                    Modifier.fillMaxWidth().selectable(selected = settings.aiProvider == p, role = Role.RadioButton) { scope.launch { vm.c.settings.setAiProvider(p) } },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = settings.aiProvider == p, onClick = null)
                     Text(p.label)
                 }
             }

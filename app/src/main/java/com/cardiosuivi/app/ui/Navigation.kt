@@ -74,7 +74,22 @@ import com.cardiosuivi.domain.model.ProtocolType
 import com.cardiosuivi.domain.model.SessionPeriod
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
+
+private object Loading
+private object Failed
+
+/** Redémarre l'interface sur une tâche neuve (après suppression ou réinitialisation des données). */
+fun restartApp(activity: android.app.Activity) {
+    activity.startActivity(
+        android.content.Intent(activity, MainActivity::class.java)
+            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK),
+    )
+    activity.finish()
+}
 
 object Routes {
     const val DASHBOARD = "dashboard"
@@ -120,12 +135,19 @@ fun AppRoot(activity: MainActivity, container: AppContainer, settings: AppSettin
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         return
     }
-    val db = remember { container.databaseOrNull() }
-    if (db == null) {
+    // Ouverture de la base chiffrée hors du fil principal (dérivation de clé SQLCipher potentiellement longue).
+    val db by produceState<Any?>(initialValue = Loading) {
+        value = withContext(Dispatchers.IO) { container.databaseOrNull() } ?: Failed
+    }
+    if (db === Loading) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        return
+    }
+    if (db === Failed) {
         DatabaseErrorScreen(container.databaseError) {
             scope.launch {
                 container.destroyAllData()
-                activity.recreate()
+                restartApp(activity)
             }
         }
         return

@@ -288,7 +288,7 @@ fun BackupScreen(vm: AppViewModel, onBack: () -> Unit) {
             confirmWipe = 0
             scope.launch {
                 vm.c.destroyAllData()
-                (context as? android.app.Activity)?.recreate()
+                (context as? android.app.Activity)?.let { com.cardiosuivi.app.ui.restartApp(it) }
             }
         }, onDismiss = { confirmWipe = 0 }, destructive = true)
 }

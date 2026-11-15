@@ -61,11 +61,24 @@ class AppContainer(private val context: Context) {
 
     fun sessionsOrNull(): SessionRepository? = databaseOrNull()?.let { SessionRepository(it) }
 
-    val sessions: SessionRepository by lazy { SessionRepository(database) }
-    val profile: ProfileRepository by lazy { ProfileRepository(database) }
-    val maintenance: DataMaintenance by lazy { DataMaintenance(database) }
+    // Dépôts recréés à partir de la base COURANTE : après une suppression complète des données,
+    // aucun composant ne doit conserver une référence vers l'ancienne base fermée.
+    val sessions: SessionRepository get() = SessionRepository(database)
+    val profile: ProfileRepository get() = ProfileRepository(database)
+    val maintenance: DataMaintenance get() = DataMaintenance(database)
     val ocr: OcrEngine by lazy { OcrEngine() }
-    val ai: AiService by lazy { AiService(settings, secrets) }
+
+    private val http by lazy { com.cardiosuivi.app.ai.defaultHttpClientForApp() }
+
+    /** Adresse de remplacement des API d'IA, réservée aux tests automatisés (serveur simulé local). */
+    @Volatile var aiBaseUrlOverride: String? = null
+
+    val ai: AiService
+        get() = AiService(
+            settings, secrets,
+            com.cardiosuivi.app.ai.AnthropicClient(http, aiBaseUrlOverride ?: "https://api.anthropic.com"),
+            com.cardiosuivi.app.ai.OpenAiClient(http, aiBaseUrlOverride ?: "https://api.openai.com"),
+        )
     val backup: BackupManager by lazy { BackupManager(context, this) }
 
     /**

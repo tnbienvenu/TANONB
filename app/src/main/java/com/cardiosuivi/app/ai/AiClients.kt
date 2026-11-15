@@ -30,6 +30,8 @@ interface AiClient {
 
 internal val aiJson = Json { ignoreUnknownKeys = true }
 
+fun defaultHttpClientForApp(): OkHttpClient = defaultHttpClient()
+
 internal fun defaultHttpClient(): OkHttpClient = OkHttpClient.Builder()
     .connectTimeout(20, TimeUnit.SECONDS)
     .readTimeout(180, TimeUnit.SECONDS)
