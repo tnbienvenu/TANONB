@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,15 +77,15 @@ private fun parseTime(s: String): LocalTime? = s.trim().takeIf { it.isNotEmpty()
 @Composable
 fun ProfileScreen(vm: AppViewModel, onBack: () -> Unit) {
     val p by vm.profile.collectAsState()
-    var name by remember(p) { mutableStateOf(p.displayName) }
-    var birth by remember(p) { mutableStateOf(p.birthDate?.let { Fmt.date(it) } ?: "") }
-    var sex by remember(p) { mutableStateOf(p.sex) }
-    var height by remember(p) { mutableStateOf(p.heightCm?.toString() ?: "") }
-    var weight by remember(p) { mutableStateOf(p.weightKg?.let { Fmt.d1(it) } ?: "") }
-    var tSys by remember(p) { mutableStateOf(p.target?.systolic?.toString() ?: "") }
-    var tDia by remember(p) { mutableStateOf(p.target?.diastolic?.toString() ?: "") }
-    var history by remember(p) { mutableStateOf(p.medicalHistory) }
-    var obs by remember(p) { mutableStateOf(p.observations) }
+    var name by rememberSaveable(p) { mutableStateOf(p.displayName) }
+    var birth by rememberSaveable(p) { mutableStateOf(p.birthDate?.let { Fmt.date(it) } ?: "") }
+    var sex by rememberSaveable(p) { mutableStateOf(p.sex) }
+    var height by rememberSaveable(p) { mutableStateOf(p.heightCm?.toString() ?: "") }
+    var weight by rememberSaveable(p) { mutableStateOf(p.weightKg?.let { Fmt.d1(it) } ?: "") }
+    var tSys by rememberSaveable(p) { mutableStateOf(p.target?.systolic?.toString() ?: "") }
+    var tDia by rememberSaveable(p) { mutableStateOf(p.target?.diastolic?.toString() ?: "") }
+    var history by rememberSaveable(p) { mutableStateOf(p.medicalHistory) }
+    var obs by rememberSaveable(p) { mutableStateOf(p.observations) }
     var message by remember { mutableStateOf<String?>(null) }
 
     ScreenScaffold("Profil personnel", onBack = onBack) {
@@ -133,8 +134,10 @@ fun ProfileScreen(vm: AppViewModel, onBack: () -> Unit) {
 fun TreatmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
     val treatments by vm.treatments.collectAsState()
     val observations by vm.observations.collectAsState()
-    var editing by remember { mutableStateOf<Treatment?>(null) }
-    var newObs by remember { mutableStateOf("") }
+    // État conservé lors d'une rotation ou d'un pliage/dépliage : identifiant du traitement édité (0 = nouveau).
+    var editingId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val editing: Treatment? = editingId?.let { id -> if (id == 0L) Treatment(name = "") else treatments.firstOrNull { it.id == id } }
+    var newObs by rememberSaveable { mutableStateOf("") }
     var deleteT by remember { mutableStateOf<Treatment?>(null) }
 
     ScreenScaffold("Traitements et observations", onBack = onBack) {
@@ -148,11 +151,11 @@ fun TreatmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
                         Text(listOfNotNull(t.dosage.ifBlank { null }, t.usualTime?.let { "prise à $it" }, t.startDate?.let { "depuis le ${Fmt.date(it)}" }).joinToString(" · "), style = MaterialTheme.typography.bodySmall)
                         if (t.notes.isNotBlank()) Text(t.notes, style = MaterialTheme.typography.bodySmall)
                     }
-                    IconButton(onClick = { editing = t }) { Icon(Icons.Filled.Edit, "Modifier") }
+                    IconButton(onClick = { editingId = t.id }) { Icon(Icons.Filled.Edit, "Modifier") }
                     IconButton(onClick = { deleteT = t }) { Icon(Icons.Filled.Delete, "Supprimer") }
                 }
             }
-            OutlinedButton(onClick = { editing = Treatment(name = "") }) { Text("Ajouter un traitement") }
+            OutlinedButton(onClick = { editingId = 0L }) { Text("Ajouter un traitement") }
         }
         SectionCard("Journal d'observations") {
             OutlinedTextField(newObs, { newObs = it }, label = { Text("Nouvelle observation (ex. : changement de traitement, voyage…)") }, modifier = Modifier.fillMaxWidth())
@@ -171,14 +174,14 @@ fun TreatmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
 
     editing?.let { t ->
-        var name by remember(t) { mutableStateOf(t.name) }
-        var dosage by remember(t) { mutableStateOf(t.dosage) }
-        var time by remember(t) { mutableStateOf(t.usualTime?.toString() ?: "") }
-        var start by remember(t) { mutableStateOf(t.startDate?.let { Fmt.date(it) } ?: "") }
-        var active by remember(t) { mutableStateOf(t.active) }
-        var notes by remember(t) { mutableStateOf(t.notes) }
+        var name by rememberSaveable(t.id) { mutableStateOf(t.name) }
+        var dosage by rememberSaveable(t.id) { mutableStateOf(t.dosage) }
+        var time by rememberSaveable(t.id) { mutableStateOf(t.usualTime?.toString() ?: "") }
+        var start by rememberSaveable(t.id) { mutableStateOf(t.startDate?.let { Fmt.date(it) } ?: "") }
+        var active by rememberSaveable(t.id) { mutableStateOf(t.active) }
+        var notes by rememberSaveable(t.id) { mutableStateOf(t.notes) }
         AlertDialog(
-            onDismissRequest = { editing = null },
+            onDismissRequest = { editingId = null },
             title = { Text(if (t.id == 0L) "Nouveau traitement" else "Modifier le traitement") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -199,10 +202,10 @@ fun TreatmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
                 val valid = name.isNotBlank() && (time.isBlank() || parseTime(time) != null) && (start.isBlank() || parseDate(start) != null)
                 TextButton(enabled = valid, onClick = {
                     vm.saveTreatment(t.copy(name = name.trim(), dosage = dosage.trim(), usualTime = parseTime(time), startDate = parseDate(start), active = active, notes = notes.trim()))
-                    editing = null
+                    editingId = null
                 }) { Text("Enregistrer") }
             },
-            dismissButton = { TextButton(onClick = { editing = null }) { Text("Annuler") } },
+            dismissButton = { TextButton(onClick = { editingId = null }) { Text("Annuler") } },
         )
     }
     deleteT?.let { t -> ConfirmDialog("Supprimer ${t.name} ?", "Ce traitement sera retiré de votre profil.", "Supprimer", onConfirm = { vm.deleteTreatment(t.id); deleteT = null }, onDismiss = { deleteT = null }, destructive = true) }
@@ -304,7 +307,7 @@ fun SettingsScreen(vm: AppViewModel, nav: NavHostController) {
     val settings by vm.settings.collectAsState()
     val context = LocalContext.current
     val activity = context as? FragmentActivity
-    var emergency by remember(settings.emergencyNumber) { mutableStateOf(settings.emergencyNumber) }
+    var emergency by rememberSaveable(settings.emergencyNumber) { mutableStateOf(settings.emergencyNumber) }
     var bioMessage by remember { mutableStateOf<String?>(null) }
 
     ScreenScaffold("Paramètres et sécurité", onBack = { nav.popBackStack() }) {

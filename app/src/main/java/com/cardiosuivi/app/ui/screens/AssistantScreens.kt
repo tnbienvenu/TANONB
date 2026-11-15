@@ -167,8 +167,8 @@ fun AiSettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
     val settings by vm.settings.collectAsState()
     val scope = rememberCoroutineScope()
     var key by remember { mutableStateOf("") }
-    var anthropicModel by remember(settings.anthropicModel) { mutableStateOf(settings.anthropicModel) }
-    var openAiModel by remember(settings.openAiModel) { mutableStateOf(settings.openAiModel) }
+    var anthropicModel by rememberSaveable(settings.anthropicModel) { mutableStateOf(settings.anthropicModel) }
+    var openAiModel by rememberSaveable(settings.openAiModel) { mutableStateOf(settings.openAiModel) }
     var status by remember { mutableStateOf<String?>(null) }
     var testing by remember { mutableStateOf(false) }
     var keyVersion by remember { mutableStateOf(0) }

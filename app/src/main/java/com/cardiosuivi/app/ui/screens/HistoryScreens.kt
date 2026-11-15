@@ -103,7 +103,7 @@ fun SessionDetailScreen(vm: AppViewModel, id: Long, onBack: () -> Unit) {
     val s = sessions.firstOrNull { it.id == id }
     var editing by remember { mutableStateOf<Measurement?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
-    var notes by remember(s?.notes) { mutableStateOf(s?.notes ?: "") }
+    var notes by rememberSaveable(s?.notes) { mutableStateOf(s?.notes ?: "") }
     val timeFmt = DateTimeFormatter.ofPattern("HH:mm:ss")
 
     ScreenScaffold("Détail de la séance", onBack = onBack, actions = {
