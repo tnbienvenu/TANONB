@@ -1,26 +1,109 @@
 [
-  {"id": "A01", "gravite": "majeure", "titre": "Ouverture de la base chiffrée sur le fil principal",
-   "constat": "Au premier lancement sur l'émulateur, fenêtre « ne répond pas » ; analyse : la base SQLCipher (dérivation de clé) était ouverte pendant la composition de l'interface, sur le fil principal. Sur un téléphone lent, risque de démarrage figé ou d'ANR.",
-   "correction": "Ouverture en arrière-plan (produceState + Dispatchers.IO) avec écran de chargement", "tests": ["R01", "R01b", "RL01"], "statut": "corrigée"},
-  {"id": "A02", "gravite": "majeure", "titre": "Références vers une base fermée après « Supprimer toutes les données »",
-   "constat": "Revue de code puis scénario R14f : les dépôts étaient mémorisés (lazy) sur l'ancienne base ; l'activité était seulement recréée (ViewModel conservé).",
-   "correction": "Dépôts recréés sur la base courante ; redémarrage de l'interface sur une tâche neuve après suppression", "tests": ["R14f"], "statut": "corrigée et vérifiée"},
-  {"id": "A03", "gravite": "modérée", "titre": "Heure de prise d'un traitement invalide perdue silencieusement",
-   "constat": "R11b : « 25:99 » enregistré sans heure et sans message.",
-   "correction": "Enregistrement bloqué tant que l'heure ou la date est invalide, message d'aide", "tests": ["R11b", "R11b2"], "statut": "corrigée et vérifiée"},
-  {"id": "A04", "gravite": "modérée", "titre": "Saisie non enregistrée perdue à la rotation ou au pliage",
-   "constat": "R21a : nom saisi dans le profil perdu après rotation (même mécanisme lors du pliage/dépliage du Razr).",
-   "correction": "Formulaires en rememberSaveable (profil, traitement en édition, observation, notes, numéro d'urgence, modèles IA)", "tests": ["R21a", "R21b", "R21c"], "statut": "corrigée et vérifiée"},
-  {"id": "A05", "gravite": "modérée", "titre": "Rappels potentiellement retardés sans information (Android 14)",
-   "constat": "R16 : « Alarmes et rappels » non accordé par défaut ; repli sur une alarme approchée (jusqu'à 10 min de retard) sans que l'utilisateur en soit informé hors de l'écran de diagnostic.",
-   "correction": "Alerte sur l'accueil et l'écran Rappels avec bouton vers le réglage système", "tests": ["R16p", "R16a", "R16b"], "statut": "corrigée"},
-  {"id": "A06", "gravite": "modérée", "titre": "Indicateur « à vérifier » de l'OCR non discriminant",
-   "constat": "R18 : les 66 lectures, y compris les 48 exactes, avaient leurs 3 champs marqués « à vérifier ».",
-   "correction": "Confiance fondée sur le nombre de lectures concordantes, le décodage exact, la complétude et la cohérence de taille SYS/DIA", "tests": ["R18-réel", "R18-synthétique"], "statut": "corrigée"},
-  {"id": "A07", "gravite": "modérée", "titre": "Lecture hors limites dans le lecteur 7 segments",
-   "constat": "Évaluation du jeu de référence : exception quand des chiffres touchent le bord inférieur ; rattrapée, le lecteur abandonnait silencieusement.",
-   "correction": "Contrôle des bornes ; test de régression", "tests": ["R18-réel"], "statut": "corrigée"},
-  {"id": "A08", "gravite": "mineure", "titre": "Choix du fournisseur d'IA limité au petit bouton radio",
-   "constat": "Préparation de R12 : seule la pastille était cliquable (cible tactile réduite, accessibilité).",
-   "correction": "Ligne entière sélectionnable (rôle RadioButton)", "tests": ["R12c"], "statut": "corrigée et vérifiée"}
+ {
+  "id": "A01",
+  "gravite": "majeure",
+  "titre": "Ouverture de la base chiffrée sur le fil principal",
+  "constat": "Au premier lancement sur l'émulateur, fenêtre « ne répond pas » ; analyse : la base SQLCipher (dérivation de clé) était ouverte pendant la composition de l'interface, sur le fil principal. Sur un téléphone lent, risque de démarrage figé ou d'ANR.",
+  "correction": "Ouverture en arrière-plan (produceState + Dispatchers.IO) avec écran de chargement",
+  "tests": [
+   "R01",
+   "R01b",
+   "RL01"
+  ],
+  "statut": "corrigée"
+ },
+ {
+  "id": "A02",
+  "gravite": "majeure",
+  "titre": "Références vers une base fermée après « Supprimer toutes les données »",
+  "constat": "Revue de code puis scénario R14f : les dépôts étaient mémorisés (lazy) sur l'ancienne base ; l'activité était seulement recréée (ViewModel conservé).",
+  "correction": "Dépôts recréés sur la base courante ; redémarrage de l'interface sur une tâche neuve après suppression",
+  "tests": [
+   "R14f"
+  ],
+  "statut": "corrigée et vérifiée"
+ },
+ {
+  "id": "A03",
+  "gravite": "modérée",
+  "titre": "Heure de prise d'un traitement invalide perdue silencieusement",
+  "constat": "R11b : « 25:99 » enregistré sans heure et sans message.",
+  "correction": "Enregistrement bloqué tant que l'heure ou la date est invalide, message d'aide",
+  "tests": [
+   "R11b",
+   "R11b2"
+  ],
+  "statut": "corrigée et vérifiée"
+ },
+ {
+  "id": "A04",
+  "gravite": "modérée",
+  "titre": "Saisie non enregistrée perdue à la rotation ou au pliage",
+  "constat": "R21a : nom saisi dans le profil perdu après rotation (même mécanisme lors du pliage/dépliage du Razr).",
+  "correction": "Formulaires en rememberSaveable (profil, traitement en édition, observation, notes, numéro d'urgence, modèles IA)",
+  "tests": [
+   "R21a",
+   "R21b",
+   "R21c"
+  ],
+  "statut": "corrigée et vérifiée"
+ },
+ {
+  "id": "A05",
+  "gravite": "modérée",
+  "titre": "Rappels potentiellement retardés sans information (Android 14)",
+  "constat": "R16 : « Alarmes et rappels » non accordé par défaut ; repli sur une alarme approchée (jusqu'à 10 min de retard) sans que l'utilisateur en soit informé hors de l'écran de diagnostic.",
+  "correction": "Alerte sur l'accueil et l'écran Rappels avec bouton vers le réglage système",
+  "tests": [
+   "R16p",
+   "R16a",
+   "R16b"
+  ],
+  "statut": "corrigée"
+ },
+ {
+  "id": "A06",
+  "gravite": "modérée",
+  "titre": "Indicateur « à vérifier » de l'OCR non discriminant",
+  "constat": "R18 : les 66 lectures, y compris les 48 exactes, avaient leurs 3 champs marqués « à vérifier ».",
+  "correction": "Confiance fondée sur le nombre de lectures concordantes, le décodage exact, la complétude et la cohérence de taille SYS/DIA",
+  "tests": [
+   "R18-réel",
+   "R18-synthétique"
+  ],
+  "statut": "corrigée"
+ },
+ {
+  "id": "A07",
+  "gravite": "modérée",
+  "titre": "Lecture hors limites dans le lecteur 7 segments",
+  "constat": "Évaluation du jeu de référence : exception quand des chiffres touchent le bord inférieur ; rattrapée, le lecteur abandonnait silencieusement.",
+  "correction": "Contrôle des bornes ; test de régression",
+  "tests": [
+   "R18-réel"
+  ],
+  "statut": "corrigée"
+ },
+ {
+  "id": "A08",
+  "gravite": "mineure",
+  "titre": "Choix du fournisseur d'IA limité au petit bouton radio",
+  "constat": "Préparation de R12 : seule la pastille était cliquable (cible tactile réduite, accessibilité).",
+  "correction": "Ligne entière sélectionnable (rôle RadioButton)",
+  "tests": [
+   "R12c"
+  ],
+  "statut": "corrigée et vérifiée"
+ },
+ {
+  "id": "A09",
+  "gravite": "modérée",
+  "titre": "Rappels non reprogrammés après « Supprimer toutes les données »",
+  "constat": "R15b : après une suppression des données, aucune alarme en attente (dumpsys alarm : uniquement des annulations) jusqu'au prochain démarrage du processus ; l'utilisateur pouvait rester sans rappel.",
+  "correction": "Reprogrammation des rappels (valeurs initiales) à la fin de la suppression des données",
+  "tests": [
+   "R15b"
+  ],
+  "statut": "corrigée"
+ }
 ]

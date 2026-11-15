@@ -98,5 +98,9 @@ class AppContainer(private val context: Context) {
         reminderScheduler.cancelAll()
         File(context.cacheDir, "exports").deleteRecursively()
         File(context.cacheDir, "photos").deleteRecursively()
+        // Les paramètres reviennent aux valeurs initiales (rappels activés) : ils doivent être reprogrammés
+        // immédiatement, sinon aucun rappel ne serait émis avant le prochain démarrage du processus (anomalie A09).
+        reminderScheduler.rescheduleAll(settings.current().reminders)
+        settings.markRescheduled()
     }
 }
