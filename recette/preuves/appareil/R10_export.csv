@@ -1,0 +1,13 @@
+﻿seance_id;date;moment;protocole;statut;bras;mesure_n;heure_mesure;systolique_mmHg;diastolique_mmHg;pouls_bpm;pression_pulsee_mmHg;source;valeur_seance_sys;valeur_seance_dia;valeur_seance_pouls;methode_agregation;symptomes;notes_seance
+1;2026-11-09;Matin;Suivi habituel;Terminée;Non précisé;1;2026-11-09 07:06:00;130;80;70;50;Saisie manuelle;130,0;80,0;70,0;Moyenne de toutes les mesures;;
+1;2026-11-09;Matin;Suivi habituel;Terminée;Non précisé;2;2026-11-09 07:07:00;130;80;70;50;Saisie manuelle;130,0;80,0;70,0;Moyenne de toutes les mesures;;
+1;2026-11-09;Matin;Suivi habituel;Terminée;Non précisé;3;2026-11-09 07:08:00;130;80;70;50;Saisie manuelle;130,0;80,0;70,0;Moyenne de toutes les mesures;;
+2;2026-11-10;Soir;Suivi habituel;Terminée;Non précisé;1;2026-11-10 19:06:00;140;90;70;50;Saisie manuelle;140,0;90,0;70,0;Moyenne de toutes les mesures;;
+2;2026-11-10;Soir;Suivi habituel;Terminée;Non précisé;2;2026-11-10 19:07:00;140;90;70;50;Saisie manuelle;140,0;90,0;70,0;Moyenne de toutes les mesures;;
+2;2026-11-10;Soir;Suivi habituel;Terminée;Non précisé;3;2026-11-10 19:08:00;140;90;70;50;Saisie manuelle;140,0;90,0;70,0;Moyenne de toutes les mesures;;
+3;2026-11-12;Matin;Suivi habituel;Terminée;Non précisé;1;2026-11-12 07:06:00;150;96;70;54;Saisie manuelle;140,0;90,0;70,0;Moyenne de toutes les mesures;;
+3;2026-11-12;Matin;Suivi habituel;Terminée;Non précisé;2;2026-11-12 07:07:00;140;90;70;50;Saisie manuelle;140,0;90,0;70,0;Moyenne de toutes les mesures;;
+3;2026-11-12;Matin;Suivi habituel;Terminée;Non précisé;3;2026-11-12 07:08:00;130;84;70;46;Saisie manuelle;140,0;90,0;70,0;Moyenne de toutes les mesures;;
+4;2026-11-14;Soir;Suivi habituel;Terminée;Non précisé;1;2026-11-14 19:06:00;120;76;70;44;Saisie manuelle;120,0;76,0;70,0;Moyenne de toutes les mesures;;
+4;2026-11-14;Soir;Suivi habituel;Terminée;Non précisé;2;2026-11-14 19:07:00;120;76;70;44;Saisie manuelle;120,0;76,0;70,0;Moyenne de toutes les mesures;;
+4;2026-11-14;Soir;Suivi habituel;Terminée;Non précisé;3;2026-11-14 19:08:00;120;76;70;44;Saisie manuelle;120,0;76,0;70,0;Moyenne de toutes les mesures;;

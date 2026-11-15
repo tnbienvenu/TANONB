@@ -11,3 +11,4 @@ build/
 *.jks
 keystore.properties
 /dist/*.apk.tmp
+recette/preuves/appareil/R19_*.png
