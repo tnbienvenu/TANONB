@@ -10,7 +10,7 @@
 |---|---|
 | Scénarios élémentaires | **142** : **136 réussis**, **0 échoué**, **6 non exécutés** (impossibles dans cet environnement, voir § 7) |
 | Anomalies de l'application trouvées | **9** (A01–A09) : 2 majeures, 6 modérées, 1 mineure — **toutes corrigées et vérifiées par un nouveau passage** |
-| APK release signé | 1.0.2 (versionCode 3), même certificat que 1.0.1 ; parcours principaux rejoués sur l'APK release (RL00–RL10) |
+| APK release signé | **1.0.2** (versionCode 3), même certificat que 1.0.1 (SHA-256 c526072e…a500b7) ; parcours principaux rejoués sur l'APK 1.0.2 x86_64 construit à partir du même code que l'APK arm64 livré (RL00–RL10 réussis ; déjà réussis sur la construction précédente : `recette/journal_release_1.0.1.tsv`) |
 | Statut global | **Validé sur émulateur Android 14 uniquement. L'application n'est PAS déclarée entièrement validée** : aucun test n'a pu être exécuté sur un Motorola Razr 50s physique (charnière, mode flex, appareil photo réel, performances réelles). |
 
 ## 2. Environnement réellement utilisé
@@ -61,7 +61,7 @@ rappels R15, paramètres R08b/R13, IA R12, sauvegarde R14).
 | Autorisations refusées | R01c, R20a–e (notifications, alarmes exactes, caméra) | réussis |
 | Absence d'Internet | R12j–k | réussis |
 | Orientation, tailles d'écran, pliable | R21a–d, R21-720x1280, R21-1600x2560 | réussis (A04 corrigée) ; charnière/flex **non exécutés** |
-| APK release signé | RL00–RL10 (écran protégé, séance, JSON, PDF, persistance) | réussis |
+| APK release signé 1.0.2 | RL00–RL10 (écran protégé, séance, JSON, PDF, persistance) | réussis |
 
 ## 5. OCR : taux mesurés séparément (après correction, exécution sur l'émulateur)
 
@@ -99,6 +99,7 @@ Durée médiane d'analyse sur l'émulateur sans accélération : 25 à 30 s (non
 | BIO04–06 | Verrouillage « absent », empreinte inconnue « déverrouillée » | L'invite système « Déverrouiller CardioSuivi » recouvre l'écran de verrouillage ; le script cherchait le texte masqué | Rejoué avec horodatage et journaux du service biométrique : verrouillage, refus de l'empreinte 2, acceptation de l'empreinte 1 |
 | R01c | Fenêtre d'autorisation non affichée | Autorisation accordée d'avance par le script de lancement | Révocation avant le test, réussi |
 | R16b (1er passage) | Notification non reçue en 6 min | Alarme approchée (fenêtre de 10 min) : c'est l'anomalie A05 | Alerte ajoutée ; avec l'autorisation « Alarmes et rappels », notification reçue |
+| RL (1.0.2, 1er passage) | Application arrêtée au démarrage | Surcharge de l'émulateur juste après son redémarrage (charge 21, ANR simultanés du lanceur, du stockage et d'autres processus système) | Relancé une fois la charge retombée : réussi |
 | R08a, R10c, R17 | Échecs ponctuels | Activité résiduelle d'un test précédent, feuille de partage en anglais, ANR système de l'émulateur | Réinitialisation fiabilisée, relance : réussis |
 
 ## 7. Non exécuté (limites de l'environnement)

@@ -63,3 +63,7 @@ Premier essai réel (Razr 50s, tensiomètre à écran LCD 7 segments, libellés 
 Un lecteur 7 segments dédié a été ajouté (`SevenSegmentReader`). Sur la photo de l'essai : 125/85/78 lus exactement,
 image entière comme zone recadrée. Sur 200 écrans synthétiques variés non utilisés pour la mise au point :
 80 % de lectures exactes, 0 valeur fausse non signalée.
+
+## Recette fonctionnelle sur Android (version 1.0.2)
+
+Rapport complet, scénario par scénario, avec preuves et anomalies corrigées : [RECETTE.md](RECETTE.md).
