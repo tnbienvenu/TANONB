@@ -110,7 +110,10 @@ class R15_RappelsTest : RecetteBase() {
         val t0 = System.currentTimeMillis()
         var opened = false
         while (!opened && System.currentTimeMillis() - t0 < 180_000) {
-            opened = device.hasObject(By.textContains("Avant de commencer")) || device.hasObject(By.text("Nouvelle séance"))
+            // hasObject() ne cherche que dans la fenêtre active pour l'accessibilité (parfois encore le volet de
+            // notifications) : on interroge la hiérarchie complète de toutes les fenêtres affichées.
+            val xml = runCatching { java.io.ByteArrayOutputStream().also { device.dumpWindowHierarchy(it) }.toString("UTF-8") }.getOrDefault("")
+            opened = xml.contains("Avant de commencer") && xml.contains("com.cardiosuivi.app")
             if (!opened) Thread.sleep(3000)
         }
         val delay = (System.currentTimeMillis() - t0) / 1000
