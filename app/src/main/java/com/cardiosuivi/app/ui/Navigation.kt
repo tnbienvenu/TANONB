@@ -14,11 +14,23 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Insights
+import androidx.compose.material.icons.outlined.MonitorHeart
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.material3.NavigationBarItemDefaults
+import com.cardiosuivi.app.ui.theme.Health
+import com.cardiosuivi.app.ui.theme.LocalReduceMotion
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -118,14 +130,15 @@ object Routes {
     fun sessionDetail(id: Long) = "session_detail/$id"
 }
 
-private data class Tab(val route: String, val label: String, val icon: ImageVector)
+private data class Tab(val route: String, val label: String, val icon: ImageVector, val selectedIcon: ImageVector)
 
+/** Navigation principale : cinq sections, icône pleine pour l'onglet actif (forme + couleur + libellé). */
 private val tabs = listOf(
-    Tab(Routes.DASHBOARD, "Accueil", Icons.Filled.Home),
-    Tab(Routes.HISTORY, "Historique", Icons.AutoMirrored.Filled.List),
-    Tab(Routes.CHARTS, "Graphiques", Icons.AutoMirrored.Filled.ShowChart),
-    Tab(Routes.ANALYSIS, "Analyse", Icons.Filled.Analytics),
-    Tab(Routes.MORE, "Plus", Icons.Filled.Menu),
+    Tab(Routes.DASHBOARD, "Accueil", Icons.Outlined.Home, Icons.Filled.Home),
+    Tab(Routes.HISTORY, "Mesures", Icons.Outlined.MonitorHeart, Icons.Filled.MonitorHeart),
+    Tab(Routes.CHARTS, "Tendances", Icons.Outlined.Insights, Icons.Filled.Insights),
+    Tab(Routes.ANALYSIS, "Analyse IA", Icons.Outlined.AutoAwesome, Icons.Filled.AutoAwesome),
+    Tab(Routes.MORE, "Profil", Icons.Outlined.AccountCircle, Icons.Filled.AccountCircle),
 )
 
 @Composable
@@ -190,24 +203,38 @@ private fun MainNavigation(vm: AppViewModel, startRequests: MutableStateFlow<Sta
     Scaffold(
         bottomBar = {
             if (tabs.any { it.route == current }) {
-                NavigationBar {
+                NavigationBar(containerColor = Health.colors.card, tonalElevation = 0.dp) {
                     tabs.forEach { t ->
+                        val sel = current == t.route
                         NavigationBarItem(
-                            selected = current == t.route,
+                            selected = sel,
                             onClick = { nav.navigateTab(t.route) },
-                            icon = { Icon(t.icon, contentDescription = null) },
-                            label = { Text(t.label) },
+                            icon = { Icon(if (sel) t.selectedIcon else t.icon, contentDescription = null) },
+                            label = { Text(t.label, maxLines = 1, style = androidx.compose.material3.MaterialTheme.typography.labelSmall) },
+                            alwaysShowLabel = true,
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                                selectedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                                indicatorColor = androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer,
+                            ),
                         )
                     }
                 }
             }
         },
+        containerColor = Health.colors.background,
     ) { padding ->
-        Column(Modifier.padding(bottom = padding.calculateBottomPadding()), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-            NavHost(nav, startDestination = Routes.DASHBOARD) {
+        val reduce = LocalReduceMotion.current
+        val d = if (reduce) 0 else 220
+        Column(Modifier.padding(bottom = padding.calculateBottomPadding()).consumeWindowInsets(padding), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            NavHost(
+                nav, startDestination = Routes.DASHBOARD,
+                enterTransition = { fadeIn(tween(d)) }, exitTransition = { fadeOut(tween(d)) },
+                popEnterTransition = { fadeIn(tween(d)) }, popExitTransition = { fadeOut(tween(d)) },
+            ) {
                 composable(Routes.DASHBOARD) { DashboardScreen(vm, nav) }
                 composable(Routes.HISTORY) { HistoryScreen(vm, nav) }
-                composable(Routes.CHARTS) { ChartsScreen(vm) }
+                composable(Routes.CHARTS) { ChartsScreen(vm, nav) }
                 composable(Routes.ANALYSIS) { AnalysisScreen(vm, nav) }
                 composable(Routes.MORE) { MoreScreen(nav) }
                 composable(
