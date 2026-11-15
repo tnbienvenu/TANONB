@@ -58,18 +58,21 @@ abstract class RecetteBase {
     )
 
     /** Répond à une fenêtre système d'autorisation si elle est affichée. */
+    /** Nombre de fenêtres d'autorisation système traitées (preuve qu'une demande a bien été affichée). */
+    var permissionDialogsSeen = 0
+
     fun tryAnswerPermission(allow: Boolean = permissionAnswer): Boolean {
         for (id in if (allow) allowIds else denyIds) {
-            device.findObject(By.res(id))?.let { it.click(); Thread.sleep(1500); return true }
+            device.findObject(By.res(id))?.let { it.click(); permissionDialogsSeen++; Thread.sleep(1500); return true }
         }
         return false
     }
 
     fun answerPermissionDialog(allow: Boolean = permissionAnswer, timeout: Long = 15_000): Boolean {
-        lastSysCheck = 0; runCatching { dismissSystemAnr() }
+        val seenBefore = permissionDialogsSeen
         val t0 = System.currentTimeMillis()
         while (System.currentTimeMillis() - t0 < timeout) {
-            if (tryAnswerPermission(allow)) return true
+            if (tryAnswerPermission(allow) || permissionDialogsSeen > seenBefore) return true
             Thread.sleep(1000)
         }
         return false

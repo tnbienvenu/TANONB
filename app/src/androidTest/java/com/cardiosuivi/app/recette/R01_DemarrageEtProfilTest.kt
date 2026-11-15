@@ -23,8 +23,9 @@ class R01_DemarrageEtProfilTest : RecetteBase() {
         shot("R01_onboarding_bouton_inactif")
         click("J'ai compris", substring = true)
         btn.assertIsEnabled()
+        val seen0 = permissionDialogsSeen
         click("Commencer")
-        val asked = answerPermissionDialog(allow = true, timeout = 60_000)
+        val asked = answerPermissionDialog(allow = true, timeout = 60_000) || permissionDialogsSeen > seen0
         record("R01c", "Autorisation des notifications (Android 13+)", "premier accès au tableau de bord", "fenêtre système de demande affichée", if (asked) "affichée puis acceptée" else "non affichée", asked, "ECHEC_attente_NOUVELLE SÉANCE.png (run 1)")
         waitText("NOUVELLE SÉANCE", timeout = 120_000)
         shot("R01_tableau_de_bord_vide")
