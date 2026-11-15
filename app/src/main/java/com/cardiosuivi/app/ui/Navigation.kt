@@ -210,7 +210,7 @@ private fun MainNavigation(vm: AppViewModel, startRequests: MutableStateFlow<Sta
                             selected = sel,
                             onClick = { nav.navigateTab(t.route) },
                             icon = { Icon(if (sel) t.selectedIcon else t.icon, contentDescription = null) },
-                            label = { Text(t.label, maxLines = 1, style = androidx.compose.material3.MaterialTheme.typography.labelSmall) },
+                            label = { Text(t.label, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, style = androidx.compose.material3.MaterialTheme.typography.labelSmall) },
                             alwaysShowLabel = true,
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
@@ -226,7 +226,7 @@ private fun MainNavigation(vm: AppViewModel, startRequests: MutableStateFlow<Sta
     ) { padding ->
         val reduce = LocalReduceMotion.current
         val d = if (reduce) 0 else 220
-        Column(Modifier.padding(bottom = padding.calculateBottomPadding()).consumeWindowInsets(padding), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+        Column(Modifier.padding(bottom = padding.calculateBottomPadding()).consumeWindowInsets(androidx.compose.foundation.layout.PaddingValues(bottom = padding.calculateBottomPadding())), verticalArrangement = Arrangement.spacedBy(0.dp)) {
             NavHost(
                 nav, startDestination = Routes.DASHBOARD,
                 enterTransition = { fadeIn(tween(d)) }, exitTransition = { fadeOut(tween(d)) },

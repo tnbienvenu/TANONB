@@ -183,8 +183,10 @@ fun AnalysisScreen(vm: AppViewModel, nav: NavHostController) {
         }
         ReportCard(6, "Points de vigilance", Icons.Filled.Warning, c.attention, 5) {
             LocalBadge()
-            val watch = a.findings.filter { it.severity >= FindingSeverity.WATCH } +
-                (byTitle("Variabilité") + byTitle("Pression pulsée") + byTitle("Valeurs inhabituelles")).filter { it.severity < FindingSeverity.WATCH }
+            // Constats déjà présentés dans la synthèse (données, moyennes, objectif) : non répétés ici.
+            val inSynthesis = (byTitle("Données disponibles") + byTitle("Moyenne sur") + byTitle("Objectif personnel")).toSet()
+            val watch = (a.findings.filter { it.severity >= FindingSeverity.WATCH } +
+                byTitle("Variabilité") + byTitle("Pression pulsée") + byTitle("Valeurs inhabituelles")).filter { it !in inSynthesis }
             val other = a.alerts.filter { it.level < AlertLevel.CONSULT_SOON }
             if (watch.isEmpty() && other.isEmpty()) Text("Aucun point de vigilance détecté automatiquement.", style = MaterialTheme.typography.bodyMedium)
             other.sortedByDescending { it.level.ordinal }.forEach { AlertCard(it) }
