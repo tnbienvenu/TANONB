@@ -10,7 +10,7 @@
    "R01b",
    "RL01"
   ],
-  "statut": "corrigée"
+  "statut": "corrigée et vérifiée"
  },
  {
   "id": "A02",
@@ -59,7 +59,7 @@
    "R16a",
    "R16b"
   ],
-  "statut": "corrigée"
+  "statut": "corrigée et vérifiée"
  },
  {
   "id": "A06",
@@ -71,7 +71,7 @@
    "R18-réel",
    "R18-synthétique"
   ],
-  "statut": "corrigée"
+  "statut": "corrigée et vérifiée"
  },
  {
   "id": "A07",
@@ -82,7 +82,7 @@
   "tests": [
    "R18-réel"
   ],
-  "statut": "corrigée"
+  "statut": "corrigée et vérifiée"
  },
  {
   "id": "A08",
@@ -104,6 +104,6 @@
   "tests": [
    "R15b"
   ],
-  "statut": "corrigée"
+  "statut": "corrigée et vérifiée"
  }
 ]
