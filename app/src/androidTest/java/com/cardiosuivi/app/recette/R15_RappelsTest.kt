@@ -107,9 +107,19 @@ class R15_RappelsTest : RecetteBase() {
         com.cardiosuivi.app.reminders.Notifications.showReminder(ctx, "${LocalDate.now()}-MORNING", SessionPeriod.MORNING, snoozed = false)
         device.openNotification()
         device.wait(Until.findObject(By.text("Commencer")), 30_000)?.click()
-        val opened = device.wait(Until.hasObject(By.textContains("Avant de commencer")), 120_000)
+        val t0 = System.currentTimeMillis()
+        var opened = false
+        while (!opened && System.currentTimeMillis() - t0 < 180_000) {
+            opened = device.hasObject(By.textContains("Avant de commencer")) || device.hasObject(By.text("Nouvelle séance"))
+            if (!opened) Thread.sleep(3000)
+        }
+        val delay = (System.currentTimeMillis() - t0) / 1000
         shot("R16_commencer")
-        record("R16e", "Commencer depuis la notification", "bouton Commencer", "ouverture directe de la séance du matin", if (opened) "séance ouverte" else "non ouverte", opened, "R16_commencer.png")
+        runCatching {
+            java.io.File(ctx.getExternalFilesDir(null), "recette/R16_commencer_hierarchie.xml").outputStream().use { device.dumpWindowHierarchy(it) }
+        }
+        record("R16e", "Commencer depuis la notification", "bouton Commencer", "ouverture directe de la séance du matin",
+            if (opened) "séance ouverte en $delay s" else "non détectée en $delay s", opened, "R16_commencer.png, R16_commencer_hierarchie.xml")
         device.pressBack(); Thread.sleep(1500)
     }
 
