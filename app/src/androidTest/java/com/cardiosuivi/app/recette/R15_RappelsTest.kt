@@ -63,8 +63,8 @@ class R15_RappelsTest : RecetteBase() {
 
     @Test
     fun r16_notification_reporter_ignorer_commencer() {
+        // Pré-requis côté hôte (le retrait de l'autorisation tue le processus) : appops SCHEDULE_EXACT_ALARM default.
         resetApp()
-        shell("appops set ${ctx.packageName} SCHEDULE_EXACT_ALARM default")
         launch()
         val prompt = !c.reminderScheduler.canScheduleExact() && exists("Autoriser les rappels à l'heure exacte")
         shot("R16_alerte_heure_exacte")
