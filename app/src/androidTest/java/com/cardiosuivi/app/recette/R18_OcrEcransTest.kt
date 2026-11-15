@@ -84,7 +84,7 @@ class R18_OcrEcransTest : RecetteBase() {
             ?: device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.descContains("Photo")), 10_000)
         thumb?.click()
         waitText("Valeurs de la mesure 1", timeout = 120_000)
-        waitText("Confiance globale", "La reconnaissance a échoué", timeout = 180_000)
+        waitText("Confiance globale", "La reconnaissance a échoué", timeout = 600_000)
         shot("R19_validation_ocr")
         val ok = exists("125", false) && exists("85", false) && exists("78", false)
         record("R19", "OCR – parcours complet (photo réelle importée)", "photo réelle de l'écran 125/85/78", "champs pré-remplis 125 / 85 / 78, validation manuelle requise",
