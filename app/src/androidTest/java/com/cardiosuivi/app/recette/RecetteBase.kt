@@ -138,7 +138,16 @@ abstract class RecetteBase {
         compose.waitForIdle()
     }
 
+    /** Ferme le clavier virtuel s'il est affiché (sinon « retour » ne ferait que le masquer). */
+    fun hideKeyboard() {
+        val st = device.executeShellCommand("dumpsys input_method")
+        if (st.contains("mInputShown=true")) {
+            device.pressBack(); Thread.sleep(800)
+        }
+    }
+
     fun back() {
+        hideKeyboard()
         instr.uiAutomation.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK)
         compose.waitForIdle()
         Thread.sleep(800)
