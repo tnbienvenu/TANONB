@@ -64,9 +64,15 @@ def wait(label, timeout=180):
 
 
 def tap(label, exact=False, timeout=120):
-    if not wait(label, timeout):
-        raise AssertionError(f"Élément introuvable : {label}")
-    n = find(label, exact)
+    t0 = time.time()
+    while True:
+        dismiss_anr()
+        n = find(label, exact)  # même recherche que celle qui déclenche l'appui (l'écran peut changer entre deux lectures)
+        if n is not None:
+            break
+        if time.time() - t0 > timeout:
+            raise AssertionError(f"Élément introuvable : {label}")
+        time.sleep(3)
     sh("input", "tap", *map(str, center(n)))
     time.sleep(2)
 
