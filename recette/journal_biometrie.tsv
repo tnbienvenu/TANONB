@@ -1,0 +1,11 @@
+BIO01	Appareil – code PIN	locksettings set-pin 1234	code de verrouillage défini	Lock credential verified successfully	RÉUSSI	journal adb
+BIO02	Appareil – empreinte	assistant Réglages + emu finger touch 1	empreinte virtuelle enregistrée (dumpsys fingerprint)	ajoutée	RÉUSSI	journal adb
+BIO03	Activation du verrouillage	interrupteur + empreinte 1	fenêtre biométrique Android puis activation	fenêtre affichée	RÉUSSI	journal adb
+BIO04	Verrouillage après 60 s en arrière-plan	retour après 75 s	écran « CardioSuivi est verrouillé »	absent	ÉCHOUÉ	journal adb
+BIO05	Empreinte inconnue	emu finger touch 2 (non enregistrée)	accès refusé, application toujours verrouillée	DÉVERROUILLÉE	ÉCHOUÉ	journal adb
+BIO06	Empreinte connue	emu finger touch 1	déverrouillage, tableau de bord	toujours verrouillé	ÉCHOUÉ	journal adb
+BIO07	Courte sortie (< 60 s)	retour après 15 s	pas de verrouillage (sélecteur de photo, partage…)	non verrouillée	RÉUSSI	journal adb
+BIO04	Verrouillage après 60 s en arrière-plan	retour après 80 s (12:28:03 → 12:29:24)	application verrouillée, authentification demandée	invite système « Déverrouiller CardioSuivi » affichée dès le retour, contenu inaccessible (l'invite masque l'écran « CardioSuivi est verrouillé », d'où l'échec de la détection du script)	RÉUSSI	preuves/BIO_journal_biometrie.txt
+BIO05	Empreinte inconnue	emu finger touch 2 (non enregistrée)	accès refusé, application toujours verrouillée	« onAuthenticationFailed / handleAuthenticationRejected » à 12:32:23 ; invite toujours affichée 18 s après	RÉUSSI	preuves/BIO_journal_biometrie.txt
+BIO06	Empreinte connue	emu finger touch 1	déverrouillage	« handleAuthenticationSucceeded » à 12:32:59 ; écran Paramètres affiché à 12:33:20	RÉUSSI	preuves/BIO_journal_biometrie.txt
+BIO07	Courte sortie (< 60 s)	retour après 15 s (12:34:01 → 12:34:17)	pas de verrouillage (sélecteur de photo, partage…)	écran Paramètres affiché sans invite	RÉUSSI	pilotage adb

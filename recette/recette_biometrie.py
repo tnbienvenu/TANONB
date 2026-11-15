@@ -70,20 +70,20 @@ if added:
     # 4. Verrouillage après 60 s en arrière-plan, empreinte inconnue puis connue
     sh("input", "keyevent", "KEYCODE_HOME"); time.sleep(75)
     sh("am", "start", "-n", f"{PKG}/com.cardiosuivi.app.MainActivity")
-    locked = wait("CardioSuivi est verrouillé", 180)
+    locked = wait("Déverrouiller CardioSuivi", 180) or wait("CardioSuivi est verrouillé", 5)  # l'invite système masque l'écran de verrouillage
     record("BIO04", "Verrouillage après 60 s en arrière-plan", "retour après 75 s", "écran « CardioSuivi est verrouillé »", "affiché" if locked else "absent", locked)
     wait("Déverrouiller CardioSuivi", 60)
     finger(2)
-    still = screen_has("CardioSuivi est verrouillé", "Not recognized", "Empreinte non reconnue", "Try again")
+    still = screen_has("Déverrouiller CardioSuivi", "CardioSuivi est verrouillé") and not screen_has("NOUVELLE SÉANCE")
     record("BIO05", "Empreinte inconnue", "emu finger touch 2 (non enregistrée)", "accès refusé, application toujours verrouillée", "verrouillée" if still else "DÉVERROUILLÉE", still)
     finger(1)
-    unlocked = wait("NOUVELLE SÉANCE", 120)
+    unlocked = wait("Sécurité", 120) and not screen_has("Déverrouiller CardioSuivi")  # retour sur l'écran Paramètres
     record("BIO06", "Empreinte connue", "emu finger touch 1", "déverrouillage, tableau de bord", "déverrouillé" if unlocked else "toujours verrouillé", unlocked)
     # 5. Courte sortie (< 60 s) : pas de verrouillage
     sh("input", "keyevent", "KEYCODE_HOME"); time.sleep(15)
     sh("am", "start", "-n", f"{PKG}/com.cardiosuivi.app.MainActivity")
     time.sleep(20)
-    short = not screen_has("CardioSuivi est verrouillé")
+    short = not screen_has("CardioSuivi est verrouillé", "Déverrouiller CardioSuivi")
     record("BIO07", "Courte sortie (< 60 s)", "retour après 15 s", "pas de verrouillage (sélecteur de photo, partage…)", "non verrouillée" if short else "verrouillée", short)
 
 open(out, "w").write("\n".join(LOG) + "\n")

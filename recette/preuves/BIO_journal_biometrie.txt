@@ -1,0 +1,18 @@
+11-15 12:22:26.229 E/fingerprint-service.ranchu( 1150): 0x7f86aaba2d00:onSenserEventOn: onAuthenticationFailed: enrollmentId=2
+11-15 12:22:26.281 V/BiometricService(  560): onAuthenticationFailed
+11-15 12:22:26.306 V/BiometricService(  560): handleAuthenticationRejected()
+11-15 12:22:39.593 V/BiometricService(  560): handleAuthenticationSucceeded(), sensorId: 0
+11-15 12:22:40.445 D/AuthController( 2920): onDialogDismissed: 4
+11-15 12:22:40.465 D/CoreBackPreview(  560): Window{e51e439 u0 BiometricPrompt}: Setting back callback null
+11-15 12:22:40.474 V/BiometricService/AuthSession(  560): Dismissed! Modality: 1, User: 0, IsCrypto: false, Action: 2, Client: 2, Reason: 4, Error: 0, Latency: 216609
+11-15 12:22:40.574 W/InputManager-JNI(  560): Input channel object 'e51e439 BiometricPrompt (client)' was disposed without first being removed with the input manager!
+11-15 12:29:28.733 E/ThemeUtils( 2920): View class com.android.systemui.biometrics.BiometricPromptLottieViewWrapper is an AppCompat widget that can only be used with a Theme.AppCompat theme (or descendant).
+11-15 12:29:29.669 D/CoreBackPreview(  560): Window{e771f84 u0 BiometricPrompt}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@1229fee, mPriority=0, mIsAnimationCallback=false}
+11-15 12:32:22.581 E/fingerprint-service.ranchu( 1150): 0x7f86aaba2d00:onSenserEventOn: onAuthenticationFailed: enrollmentId=2
+11-15 12:32:23.110 V/BiometricService(  560): onAuthenticationFailed
+11-15 12:32:23.147 V/BiometricService(  560): handleAuthenticationRejected()
+11-15 12:32:59.197 V/BiometricService(  560): handleAuthenticationSucceeded(), sensorId: 0
+11-15 12:33:00.050 D/AuthController( 2920): onDialogDismissed: 4
+11-15 12:33:00.090 D/CoreBackPreview(  560): Window{e771f84 u0 BiometricPrompt}: Setting back callback null
+11-15 12:33:00.132 V/BiometricService/AuthSession(  560): Dismissed! Modality: 1, User: 0, IsCrypto: false, Action: 2, Client: 2, Reason: 4, Error: 0, Latency: 211967
+11-15 12:33:00.250 W/InputManager-JNI(  560): Input channel object 'e771f84 BiometricPrompt (client)' was disposed without first being removed with the input manager!
