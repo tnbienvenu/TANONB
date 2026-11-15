@@ -21,34 +21,30 @@ def screen_has(*labels):
 
 
 # 1. Code PIN de l'appareil
-sh("locksettings", "set-pin", "1234")
-time.sleep(3)
-record("BIO01", "Appareil – code PIN", "locksettings set-pin 1234", "code de verrouillage défini", "défini", True, "journal adb")
+v = sh("locksettings", "verify", "--old", "1234")
+if "verified successfully" not in v.lower():
+    sh("locksettings", "set-pin", "1234"); time.sleep(3)
+    v = sh("locksettings", "verify", "--old", "1234")
+pin_ok = "verified successfully" in v.lower()
+record("BIO01", "Appareil – code PIN", "locksettings set-pin 1234", "code de verrouillage défini", v.strip()[:60] or "?", pin_ok, "journal adb")
 
-# 2. Enregistrement d'une empreinte (Réglages Android)
-sh("am", "start", "-a", "android.settings.BIOMETRIC_ENROLL")
-added = False
-t0 = time.time()
-while time.time() - t0 < 900 and not added:
-    dismiss_anr()
-    t = " ".join(texts())
-    if "Fingerprint added" in t or "Empreinte ajoutée" in t:
-        added = True; break
-    if any(k in t for k in ["Re-enter your PIN", "Confirm your PIN", "Enter your PIN", "Saisissez votre code"]):
-        sh("input", "text", "1234"); sh("input", "keyevent", "66"); time.sleep(4); continue
-    clicked = False
-    for b in ["Fingerprint", "Fingerprint Unlock", "I agree", "Agree", "More", "Next", "Start", "Continue"]:
-        n = find(b, exact=True)
-        if n is not None and n.get("clickable") == "true" or (n is not None and b in ("I agree", "More", "Next", "Start", "Continue", "Agree")):
-            sh("input", "tap", *map(str, center(n))); time.sleep(4); clicked = True; break
-    if clicked: continue
-    if any(k in t for k in ["Touch the sensor", "Lift", "Put your finger", "Keep lifting", "touch"]):
-        finger(1); continue
-    time.sleep(3)
-record("BIO02", "Appareil – empreinte", "emu finger touch 1 (assistant Réglages)", "empreinte virtuelle enregistrée",
+# 2. Enregistrement d'une empreinte (Réglages Android). Les écrans de l'assistant sont protégés (capture noire,
+# arbre d'accessibilité vide) : si une empreinte existe déjà (assistant conduit à la main : appui sur le bouton de
+# pied de page puis « adb emu finger touch 1 »), on la réutilise.
+def enrolled():
+    import re
+    m = re.search(r'"count":(\d+)', sh("dumpsys", "fingerprint"))
+    return m is not None and int(m.group(1)) > 0
+added = enrolled()
+if not added:
+    sh("am", "start", "-a", "android.settings.BIOMETRIC_ENROLL")
+    t0 = time.time()
+    while time.time() - t0 < 900 and not added:
+        sh("input", "text", "1234"); sh("input", "keyevent", "66"); time.sleep(15)
+        sh("input", "tap", "590", "1660"); time.sleep(15)
+        finger(1); added = enrolled()
+record("BIO02", "Appareil – empreinte", "assistant Réglages + emu finger touch 1", "empreinte virtuelle enregistrée (dumpsys fingerprint)",
        "ajoutée" if added else "non ajoutée (assistant non abouti)", added)
-n = find("Done", exact=True)
-if n is not None: sh("input", "tap", *map(str, center(n)))
 sh("input", "keyevent", "KEYCODE_HOME"); time.sleep(3)
 
 if added:
