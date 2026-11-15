@@ -12,6 +12,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.runtime.collectAsState
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Lock
@@ -77,7 +81,7 @@ fun OnboardingScreen(onAccept: () -> Unit) {
                 Checkbox(checked = checked, onCheckedChange = { checked = it })
                 Text("J'ai compris que CardioSuivi est un outil d'aide au suivi qui ne remplace pas un avis médical.")
             }
-            Button(onClick = onAccept, enabled = checked, modifier = Modifier.fillMaxWidth()) { Text("Commencer") }
+            com.cardiosuivi.app.ui.components.PrimaryButton("Commencer", onAccept, enabled = checked)
         }
     }
 }
@@ -121,34 +125,65 @@ fun DatabaseErrorScreen(error: Throwable?, onReset: () -> Unit) {
     )
 }
 
-private data class MenuItem(val label: String, val subtitle: String, val icon: ImageVector, val route: String)
+private data class MenuItem(val label: String, val subtitle: String, val icon: ImageVector, val route: String, val color: androidx.compose.ui.graphics.Color)
 
+/** Onglet « Profil » : identité, santé, suivi, IA, sécurité et informations, regroupés en sections. */
 @Composable
-fun MoreScreen(nav: NavHostController) {
-    val items = listOf(
-        MenuItem("Assistant IA", "Questions sur vos mesures", Icons.AutoMirrored.Filled.Chat, Routes.ASSISTANT),
-        MenuItem("Rapports PDF et CSV", "Exporter et partager", Icons.Filled.PictureAsPdf, Routes.REPORTS),
-        MenuItem("Calendrier des séances", "Séances réalisées et prévues", Icons.Filled.CalendarMonth, Routes.CALENDAR),
-        MenuItem("Rappels", "Jours, horaires, intervalle", Icons.Filled.Alarm, Routes.REMINDERS),
-        MenuItem("Automesure standardisée", "Protocole sur 7 jours", Icons.Filled.Science, Routes.HBPM),
-        MenuItem("Profil personnel", "Identité, objectif, antécédents", Icons.Filled.Person, Routes.PROFILE),
-        MenuItem("Traitements et observations", "Traitements, journal", Icons.Filled.Medication, Routes.TREATMENTS),
-        MenuItem("Sauvegarde et restauration", "Fichier chiffré", Icons.Filled.SettingsBackupRestore, Routes.BACKUP),
-        MenuItem("Paramètres et sécurité", "Verrouillage, calculs, IA", Icons.Filled.Settings, Routes.SETTINGS),
-        MenuItem("Autorisations", "Diagnostic notifications et alarmes", Icons.Filled.VerifiedUser, Routes.PERMISSIONS),
-        MenuItem("Références médicales", "Recommandations et seuils", Icons.AutoMirrored.Filled.MenuBook, Routes.REFERENCES),
+fun MoreScreen(vm: com.cardiosuivi.app.ui.AppViewModel, nav: NavHostController) {
+    val profile by vm.profile.collectAsState()
+    val settings by vm.settings.collectAsState()
+    val h = com.cardiosuivi.app.ui.theme.Health.colors
+    val groups = listOf(
+        "Santé" to listOf(
+            MenuItem("Profil personnel", "Identité, objectif tensionnel, antécédents", Icons.Filled.Person, Routes.PROFILE, h.systolic),
+            MenuItem("Traitements et observations", "Traitements, journal", Icons.Filled.Medication, Routes.TREATMENTS, h.pulse),
+        ),
+        "Suivi" to listOf(
+            MenuItem("Rappels", "Jours, horaires, intervalle", Icons.Filled.Alarm, Routes.REMINDERS, h.attention),
+            MenuItem("Calendrier des séances", "Séances réalisées et prévues", Icons.Filled.CalendarMonth, Routes.CALENDAR, h.diastolic),
+            MenuItem("Automesure standardisée", "Protocole sur 7 jours", Icons.Filled.Science, Routes.HBPM, h.favorable),
+            MenuItem("Rapports PDF et CSV", "Exporter et partager", Icons.Filled.PictureAsPdf, Routes.REPORTS, h.alert),
+        ),
+        "Intelligence artificielle" to listOf(
+            MenuItem("Assistant IA", "Questions sur vos mesures", Icons.AutoMirrored.Filled.Chat, Routes.ASSISTANT, MaterialTheme.colorScheme.tertiary),
+            MenuItem("Configuration de l'IA", "Fournisseur, clé, consentement, données partagées", Icons.Filled.AutoAwesome, Routes.AI_SETTINGS, MaterialTheme.colorScheme.tertiary),
+        ),
+        "Sécurité et confidentialité" to listOf(
+            MenuItem("Paramètres et sécurité", "Verrouillage biométrique, écran protégé, calculs", Icons.Filled.Settings, Routes.SETTINGS, h.neutral),
+            MenuItem("Sauvegarde et restauration", "Fichier chiffré", Icons.Filled.SettingsBackupRestore, Routes.BACKUP, h.diastolic),
+            MenuItem("Autorisations", "Diagnostic notifications et alarmes", Icons.Filled.VerifiedUser, Routes.PERMISSIONS, h.favorable),
+        ),
+        "Informations" to listOf(
+            MenuItem("Références médicales", "Recommandations et seuils", Icons.AutoMirrored.Filled.MenuBook, Routes.REFERENCES, h.neutral),
+        ),
     )
-    ScreenScaffold("Plus", onBack = null) {
-        items.forEach { m ->
-            SectionCard(modifier = Modifier.clickable { nav.navigate(m.route) }) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Icon(m.icon, null, tint = MaterialTheme.colorScheme.primary)
-                    Column {
-                        Text(m.label, style = MaterialTheme.typography.titleSmall)
-                        Text(m.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+    ScreenScaffold("Profil", onBack = null) {
+        com.cardiosuivi.app.ui.components.HealthCard(onClick = { nav.navigate(Routes.PROFILE) }) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Icon(Icons.Filled.AccountCircle, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(56.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(profile.displayName.ifBlank { "Mon profil" }, style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        profile.target?.let { "Objectif : < ${it.systolic}/${it.diastolic} mmHg" } ?: "Objectif tensionnel non renseigné",
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "Verrouillage biométrique : " + if (settings.biometricLock) "activé" else "désactivé",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        groups.forEach { (title, items) ->
+            Text(title.uppercase(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp, top = 6.dp))
+            com.cardiosuivi.app.ui.components.HealthCard(contentPadding = 8.dp) {
+                items.forEachIndexed { i, m ->
+                    if (i > 0) androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(start = 52.dp))
+                    com.cardiosuivi.app.ui.components.SettingsRow(m.label, m.subtitle, m.icon, m.color) { nav.navigate(m.route) }
                 }
             }
         }
+        com.cardiosuivi.app.ui.components.Disclaimer()
     }
 }

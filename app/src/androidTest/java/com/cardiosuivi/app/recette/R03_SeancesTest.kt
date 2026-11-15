@@ -19,7 +19,7 @@ import org.junit.runner.RunWith
 class R03_SeancesTest : RecetteBase() {
 
     private fun startManualSession() {
-        click("NOUVELLE SÉANCE", substring = true)
+        click("Commencer une séance")
         waitText("Avant de commencer")
         shot("R03_preparation")
         click("Je suis déjà reposé(e) : commencer")
@@ -78,19 +78,19 @@ class R03_SeancesTest : RecetteBase() {
         record("R03c", "Séance – alerte de fin", "moyenne 141/91, sans objectif", "alerte « Au-dessus du seuil de référence à domicile » (135/85)",
             if (home) "alerte affichée" else "absente", home, "R03_seance_enregistree.png")
         click("Terminer")
-        waitText("NOUVELLE SÉANCE")
+        waitText("Commencer une séance")
         val s = runBlocking { c.sessions.getAll() }
         val ok = s.size == 1 && s[0].status == SessionStatus.COMPLETED && s[0].measurements.map { it.systolic } == listOf(148, 140, 136)
         record("R03d", "Séance – enregistrement", "validation", "1 séance « Terminée », 3 mesures 148/140/136, heures réelles croissantes",
             "${s.size} séance(s), statut ${s.firstOrNull()?.status}, mesures ${s.firstOrNull()?.measurements?.map { "${it.systolic}/${it.diastolic}@${it.measuredAt}" }}",
             ok && s[0].measurements.zipWithNext().all { (a, b) -> a.measuredAt < b.measuredAt })
         shot("R03_tableau_de_bord_apres")
-        record("R03e", "Tableau de bord", "après séance", "Dernière séance 141/91/74 affichée", if (exists("Dernière séance") && exists("141", false) && exists("91", false)) "affichée" else "absente",
+        record("R03e", "Tableau de bord", "après séance", "Dernière séance 141/91/74 affichée", if (exists("Dernière tension") && exists("141", false) && exists("91", false)) "affichée" else "absente",
             exists("141", false) && exists("91", false), "R03_tableau_de_bord_apres.png")
 
-        click("Historique")
-        waitText("Terminée", substring = true)
-        val hist = exists("141/91 mmHg") && exists("148/94  ·  140/90  ·  136/88")
+        tab("Mesures")
+        waitText("Complète", substring = true)
+        val hist = exists("141/91", false) && exists("148/94  ·  140/90  ·  136/88")
         shot("R03_historique")
         record("R03f", "Historique", "1 séance", "ligne 141/91 mmHg et détail des 3 mesures", if (hist) "conforme" else "non conforme", hist, "R03_historique.png")
     }

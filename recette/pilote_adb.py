@@ -103,3 +103,19 @@ def scroll_down():
 def record(tid, feature, data, expected, observed, ok, proof="journal adb"):
     LOG.append("\t".join([tid, feature, data, expected, observed, "RÉUSSI" if ok else "ÉCHOUÉ", proof]))
     print(("OK  " if ok else "KO  ") + tid + " " + observed, flush=True)
+
+
+def tap_scroll(label, exact=False, tries=8, timeout=60):
+    """Fait défiler l'écran jusqu'à trouver [label] (contenu hors écran absent de l'arbre d'accessibilité), puis le touche."""
+    wait(label, 5)
+    for direction in (scroll_down, scroll_up):
+        for _ in range(tries):
+            if find(label, exact) is not None:
+                return tap(label, exact, timeout)
+            direction()
+    tap(label, exact, timeout)
+
+
+def scroll_up():
+    sh("input", "swipe", "360", "500", "360", "1300", "400")
+    time.sleep(2)

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -90,29 +91,30 @@ fun ProfileScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     ScreenScaffold("Profil personnel", onBack = onBack) {
         Text("Ces informations restent sur votre téléphone (base chiffrée). Elles figurent dans vos rapports PDF.", style = MaterialTheme.typography.bodySmall)
+        Text("Tous les champs du profil sont facultatifs. Ils restent chiffrés sur ce téléphone.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         SectionCard("Identité") {
             OutlinedTextField(name, { name = it }, label = { Text("Nom ou pseudonyme") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(birth, { birth = it }, label = { Text("Date de naissance (JJ/MM/AAAA)") }, singleLine = true, isError = birth.isNotBlank() && parseDate(birth) == null, modifier = Modifier.fillMaxWidth())
             Text("Sexe (facultatif)", style = MaterialTheme.typography.labelLarge)
             ChoiceChips(Sex.entries.toList(), sex, { it.label }) { sex = it }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                NumberField("Taille (cm)", height, { height = it }, Modifier.weight(1f))
-                OutlinedTextField(weight, { weight = it.filter { c -> c.isDigit() || c == ',' || c == '.' }.take(5) }, label = { Text("Poids (kg)") }, singleLine = true,
+                NumberField("Taille", height, { height = it }, Modifier.weight(1f), unit = "cm")
+                OutlinedTextField(weight, { weight = it.filter { c -> c.isDigit() || c == ',' || c == '.' }.take(5) }, label = { Text("Poids") }, suffix = { Text("kg") }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f))
             }
         }
         SectionCard("Objectif tensionnel personnalisé") {
             Text("À définir avec votre médecin (mesures à domicile). Exemple de saisie : 135 et 85 pour « < 135/85 ».", style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                NumberField("Systolique <", tSys, { tSys = it }, Modifier.weight(1f))
-                NumberField("Diastolique <", tDia, { tDia = it }, Modifier.weight(1f))
+                NumberField("Systolique <", tSys, { tSys = it }, Modifier.weight(1f), unit = "mmHg")
+                NumberField("Diastolique <", tDia, { tDia = it }, Modifier.weight(1f), unit = "mmHg")
             }
         }
         SectionCard("Antécédents et observations") {
             OutlinedTextField(history, { history = it }, label = { Text("Antécédents médicaux pertinents") }, minLines = 2, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(obs, { obs = it }, label = { Text("Observations complémentaires") }, minLines = 2, modifier = Modifier.fillMaxWidth())
         }
-        Button(modifier = Modifier.fillMaxWidth(), onClick = {
+        Button(modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp), onClick = {
             val bd = parseDate(birth)
             val ts = tSys.toIntOrNull(); val td = tDia.toIntOrNull()
             message = when {
@@ -185,7 +187,7 @@ fun TreatmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
             title = { Text(if (t.id == 0L) "Nouveau traitement" else "Modifier le traitement") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    OutlinedTextField(name, { name = it }, label = { Text("Médicament") }, singleLine = true)
+                    OutlinedTextField(name, { name = it }, label = { Text("Médicament *") }, singleLine = true)
                     OutlinedTextField(dosage, { dosage = it }, label = { Text("Posologie prescrite") }, singleLine = true)
                     val timeBad = time.isNotBlank() && parseTime(time) == null
                     val startBad = start.isNotBlank() && parseDate(start) == null

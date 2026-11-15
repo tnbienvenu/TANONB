@@ -232,7 +232,7 @@ private val Dark = darkColorScheme(
 )
 
 private val AppShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
+    extraSmall = RoundedCornerShape(Radius.field),
     small = RoundedCornerShape(Radius.chip),
     medium = RoundedCornerShape(Radius.inner),
     large = RoundedCornerShape(Radius.card),

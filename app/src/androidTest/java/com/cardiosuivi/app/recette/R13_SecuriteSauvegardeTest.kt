@@ -38,7 +38,7 @@ class R13_SecuriteSauvegardeTest : RecetteBase() {
     fun r13_parametres_securite() {
         resetApp(secure = true); launch()
         record("R13a", "Écran protégé (défaut)", "réglage par défaut", "FLAG_SECURE actif (captures bloquées)", "FLAG_SECURE=${secureFlag()}", secureFlag(), "capture noire R000 (image ATD) / fenêtre")
-        click("Plus"); click("Paramètres et sécurité")
+        tab("Profil"); click("Paramètres et sécurité")
         click("Écran protégé")
         Thread.sleep(1500)
         record("R13b", "Écran protégé – désactivation", "interrupteur", "FLAG_SECURE retiré", "FLAG_SECURE=${secureFlag()}", !secureFlag(), "—")
@@ -55,7 +55,7 @@ class R13_SecuriteSauvegardeTest : RecetteBase() {
         val empty = runBlocking { c.settings.current().emergencyNumber }
         record("R13d", "Numéro d'urgence vide", "champ vidé", "retour à 112 (jamais de numéro vide)", "enregistré=$empty", empty == "112", "—")
         relaunch()
-        click("Plus"); click("Paramètres et sécurité")
+        tab("Profil"); click("Paramètres et sécurité")
         record("R13e", "Paramètres – persistance", "relance", "écran protégé désactivé et 112 conservés", "FLAG_SECURE=${secureFlag()}", !secureFlag() && exists("112"), "—")
 
         // Biométrie : aucun moyen d'authentification configuré sur l'émulateur au départ
@@ -107,7 +107,7 @@ class R13_SecuriteSauvegardeTest : RecetteBase() {
             back.size == 1 && back[0].measurements.map { it.systolic } == listOf(125, 126, 127) && name == "RECETTE-FICTIF", "—")
 
         // Interface : écran de sauvegarde, mots de passe non concordants
-        click("Plus"); click("Sauvegarde et restauration")
+        tab("Profil"); click("Sauvegarde et restauration")
         type("Mot de passe (", "abcdefgh1")
         type("Confirmer le mot de passe", "abcdefgh2")
         shot("R14_mots_de_passe_differents")
@@ -130,7 +130,7 @@ class R13_SecuriteSauvegardeTest : RecetteBase() {
         Thread.sleep(8000)
         scenario?.close()
         scenario = androidx.test.core.app.ActivityScenario.launch(com.cardiosuivi.app.MainActivity::class.java)
-        waitText("Bienvenue dans CardioSuivi", "NOUVELLE SÉANCE", timeout = 120_000)
+        waitText("Bienvenue dans CardioSuivi", "Commencer une séance", timeout = 120_000)
         shot("R14_apres_suppression")
         val wiped = runBlocking { c.sessions.getAll().isEmpty() && c.profile.getProfile().displayName.isEmpty() }
         record("R14f", "Suppression de toutes les données", "double confirmation", "données effacées, application relancée sans plantage, avertissement initial réaffiché",

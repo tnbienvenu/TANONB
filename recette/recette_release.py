@@ -28,11 +28,11 @@ for _ in range(4):
     if find("Commencer", exact=True) is not None: break
     scroll_down()
 tap("Commencer", exact=True)
-ok = wait("NOUVELLE SÉANCE", 240)
+ok = wait("Résumé de votre santé cardiovasculaire", 240)
 record("RL03", "Release – tableau de bord", "acceptation", "tableau de bord", "affiché" if ok else "absent", ok)
 
 # Séance manuelle de 2 mesures (fictives) puis arrêt
-tap("NOUVELLE SÉANCE")
+tap("Mesures", exact=True); tap("Nouvelle séance", exact=True)
 tap("Je suis déjà reposé(e) : commencer")
 tap_res("com.android.permissioncontroller:id/permission_allow_foreground_only_button", 20) or tap_res("com.android.permissioncontroller:id/permission_allow_one_time_button", 5)
 for i, (s, d, p) in enumerate([("142", "91", "71"), ("138", "88", "69")]):
@@ -54,7 +54,7 @@ record("RL06", "Release – enregistrement", "séance incomplète", "écran « S
 tap("Terminer")
 
 # Sérialisation (kotlinx.serialization après R8) : aperçu des données IA
-tap("Plus"); tap("Assistant IA")
+tap("Profil", exact=True); tap_scroll("Assistant IA", exact=True)
 tap("Données transmises")
 ok = wait("generatedAt", 120)
 record("RL07", "Release – sérialisation JSON (R8)", "aperçu « Données transmises »", "JSON du contexte affiché sans plantage", "affiché" if ok else "absent", ok)
@@ -62,7 +62,7 @@ tap("Fermer", exact=True)
 sh("input", "keyevent", "KEYCODE_BACK"); time.sleep(2)
 
 # Rapport PDF (PdfDocument après R8)
-tap("Rapports PDF et CSV")
+tap_scroll("Rapports PDF et CSV")
 tap("Générer le rapport PDF")
 ok = wait("Rapport PDF généré.", 240)
 record("RL08", "Release – rapport PDF", "période 30 jours", "« Rapport PDF généré. »", "OK" if ok else "échec", ok)
@@ -72,9 +72,9 @@ record("RL09", "Release – plantages", "journal crash du système", "aucun plan
 # Persistance après arrêt forcé du processus
 sh("am", "force-stop", PKG)
 sh("am", "start", "-n", f"{PKG}/.MainActivity")
-ok = wait("NOUVELLE SÉANCE", 240)
-tap("Historique")
-ok2 = wait("140/90 mmHg", 120)
+ok = wait("Résumé de votre santé cardiovasculaire", 240)
+tap("Mesures", exact=True)
+ok2 = wait("140/90", 120)
 record("RL10", "Release – persistance (processus tué)", "force-stop puis relance", "séance 140/90 toujours dans l'historique (base chiffrée)", "présente" if ok2 else "absente", ok and ok2)
 
 open(out, "w").write("\n".join(LOG) + "\n")

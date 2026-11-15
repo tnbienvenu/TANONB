@@ -16,6 +16,32 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.graphicsLayer
+import com.cardiosuivi.app.ui.components.Appear
+import com.cardiosuivi.app.ui.components.CardHeader
+import com.cardiosuivi.app.ui.components.CircularCountdown
+import com.cardiosuivi.app.ui.components.HealthCard
+import com.cardiosuivi.app.ui.components.PrimaryButton
+import com.cardiosuivi.app.ui.components.SecondaryButton
+import com.cardiosuivi.app.ui.components.StatusBadge
+import com.cardiosuivi.app.ui.components.StepProgress
+import com.cardiosuivi.app.ui.theme.Health
+import com.cardiosuivi.app.ui.theme.NumberStyles
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.AlertDialog
@@ -103,43 +129,46 @@ fun SessionFlowScreen(
         else -> "Mesure ${minOf(st.nextIndex, st.planned)} sur ${st.planned}"
     }
     ScreenScaffold(title, onBack = { if (st.step == FlowStep.SAVED) onExit() else confirmExit = true }) {
-        if (st.measurements.isNotEmpty() && st.step !in setOf(FlowStep.SUMMARY, FlowStep.SAVED)) {
-            LinearProgressIndicator(progress = { st.measurements.size.toFloat() / st.planned }, modifier = Modifier.fillMaxWidth())
+        if (st.step in setOf(FlowStep.CAPTURE, FlowStep.VALIDATE, FlowStep.INTERVAL) && st.editingMeasurementId == null) {
+            StepProgress(done = st.measurements.size, total = st.planned, current = minOf(st.nextIndex, st.planned))
         }
         st.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         when (st.step) {
             FlowStep.LOADING -> CircularProgressIndicator()
             FlowStep.PREPARATION -> Preparation(st, vm)
             FlowStep.REST -> Countdown("Repos au calme", st.restRemaining, 300, "Restez assis, détendu, sans parler. La mesure pourra commencer à la fin du décompte.") {
-                OutlinedButton(onClick = vm::goToCapture) { Text("Passer le repos") }
+                SecondaryButton("Passer le repos", vm::goToCapture)
             }
             FlowStep.CAPTURE -> CameraCapture(st.nextIndex, vm::onPhotoCaptured, vm::onPhotoImported, vm::manualEntry)
             FlowStep.VALIDATE -> Validation(st, vm)
             FlowStep.INTERVAL -> {
                 st.lastMeasurementAlerts.forEach { AlertCard(it, callEmergency) }
                 val last = st.measurements.last()
-                SectionCard("Mesure ${last.index} enregistrée") { BpValue("${last.systolic}", "${last.diastolic}", last.pulse?.toString() ?: "—") }
-                Countdown("Avant la mesure ${st.nextIndex}", st.intervalRemaining, st.intervalSeconds, "Gardez la même position, bras au repos, sans parler.") {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = vm::goToCapture) { Text(if (st.intervalRemaining > 0) "Mesurer maintenant" else "Mesure suivante") }
-                        OutlinedButton(onClick = vm::skipToSummary) { Text("Arrêter ici") }
+                Appear {
+                    HealthCard {
+                        CardHeader("Mesure ${last.index} enregistrée", Icons.Filled.CheckCircle, Health.colors.favorable)
+                        BpValue("${last.systolic}", "${last.diastolic}", last.pulse?.toString() ?: "—")
                     }
+                }
+                Countdown("Avant la mesure ${st.nextIndex}", st.intervalRemaining, st.intervalSeconds, "Gardez la même position, bras au repos, sans parler.") {
+                    PrimaryButton(if (st.intervalRemaining > 0) "Mesurer maintenant" else "Mesure suivante", vm::goToCapture, icon = Icons.Filled.CameraAlt)
+                    SecondaryButton("Arrêter ici", vm::skipToSummary)
                 }
             }
             FlowStep.SUMMARY -> Summary(st, vm, callEmergency)
             FlowStep.SAVED -> {
                 val urgent = st.sessionAlerts.any { it.level == AlertLevel.URGENT }
+                SavedConfirmation()
                 if (urgent) Text("Recommandation urgente", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.titleLarge)
                 st.sessionAlerts.sortedByDescending { it.level.ordinal }.forEach { AlertCard(it, callEmergency) }
                 if (st.sessionAlerts.isEmpty()) Text("Aucune alerte pour cette séance.")
-                SectionCard("Valeur de séance") {
-                    st.stats?.primary?.let { p -> BpValue(Fmt.d0(p.systolic), Fmt.d0(p.diastolic), p.pulse?.let { Fmt.d0(it) }) }
-                    Text(st.method.label, style = MaterialTheme.typography.labelSmall)
+                HealthCard {
+                    CardHeader("Valeur de séance", Icons.Filled.Favorite, Health.colors.systolic)
+                    st.stats?.primary?.let { p -> BpValue(Fmt.d0(p.systolic), Fmt.d0(p.diastolic), p.pulse?.let { Fmt.d0(it) }, style = NumberStyles.hero) }
+                    Text(st.method.label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onExit) { Text("Terminer") }
-                    st.sessionId?.let { id -> OutlinedButton(onClick = { onOpenSession(id) }) { Text("Voir le détail") } }
-                }
+                PrimaryButton("Terminer", onExit)
+                st.sessionId?.let { id -> SecondaryButton("Voir le détail", { onOpenSession(id) }) }
             }
         }
     }
@@ -164,7 +193,8 @@ fun SessionFlowScreen(
 
 @Composable
 private fun Preparation(st: FlowState, vm: SessionFlowViewModel) {
-    SectionCard("Avant de commencer") {
+    HealthCard {
+        CardHeader("Avant de commencer", Icons.Filled.Info, MaterialTheme.colorScheme.primary)
         listOf(
             "Reposez-vous cinq minutes au calme.",
             "Asseyez-vous, dos soutenu, pieds à plat au sol, jambes non croisées.",
@@ -173,7 +203,7 @@ private fun Preparation(st: FlowState, vm: SessionFlowViewModel) {
             "Ne parlez pas et ne bougez pas pendant la mesure.",
             "Évitez caféine, tabac et exercice physique dans les 30 minutes précédentes.",
             "Respectez les consignes du fabricant de votre tensiomètre.",
-        ).forEach { Text("• $it") }
+        ).forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
     }
     SectionCard("Séance") {
         Text("Moment", style = MaterialTheme.typography.labelLarge)
@@ -184,16 +214,16 @@ private fun Preparation(st: FlowState, vm: SessionFlowViewModel) {
             if (st.protocol == ProtocolType.STANDARDIZED_HBPM) " (Protocole d'automesure standardisée : 2 mesures par séance.)" else "",
             style = MaterialTheme.typography.bodySmall)
     }
-    Button(onClick = vm::startRest, modifier = Modifier.fillMaxWidth()) { Text("Démarrer le repos de 5 minutes") }
-    OutlinedButton(onClick = vm::goToCapture, modifier = Modifier.fillMaxWidth()) { Text("Je suis déjà reposé(e) : commencer") }
+    PrimaryButton("Démarrer le repos de 5 minutes", vm::startRest, icon = Icons.Filled.Timer)
+    SecondaryButton("Je suis déjà reposé(e) : commencer", vm::goToCapture)
 }
 
 @Composable
 private fun Countdown(title: String, remaining: Int, total: Int, hint: String, actions: @Composable () -> Unit) {
-    SectionCard(title) {
-        Text(String.format(Fmt.LOCALE, "%d:%02d", remaining / 60, remaining % 60), style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
-        LinearProgressIndicator(progress = { 1f - remaining.toFloat() / total.coerceAtLeast(1) }, modifier = Modifier.fillMaxWidth())
-        Text(hint, style = MaterialTheme.typography.bodySmall)
+    HealthCard {
+        CardHeader(title, Icons.Filled.Timer, MaterialTheme.colorScheme.primary)
+        CircularCountdown(remaining, total, Modifier.align(Alignment.CenterHorizontally))
+        Text(hint, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterHorizontally))
         actions()
     }
 }
@@ -202,26 +232,36 @@ private fun Countdown(title: String, remaining: Int, total: Int, hint: String, a
 private fun Validation(st: FlowState, vm: SessionFlowViewModel) {
     val bmp by vm.bitmap.collectAsState()
     bmp?.let { b ->
-        SectionCard("Photo") {
+        HealthCard {
+            CardHeader("Photo", Icons.Filled.Image, MaterialTheme.colorScheme.primary)
             Text("Ajustez les quatre coins sur l'écran du tensiomètre (corrige la perspective), puis relancez l'analyse.", style = MaterialTheme.typography.bodySmall)
             CropEditor(b, st.quad, vm::setQuad)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = vm::runOcr, enabled = !st.ocrRunning) { Text("Analyser la zone") }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = vm::runOcr, enabled = !st.ocrRunning, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp), modifier = Modifier.heightIn(min = 48.dp)) { Text("Analyser la zone") }
                 TextButton(onClick = { vm.setQuad(if (st.quad.isFull) CropQuad.DEFAULT else CropQuad.FULL) }) { Text(if (st.quad.isFull) "Définir une zone" else "Image entière") }
             }
             if (st.ocrRunning) Row(verticalAlignment = Alignment.CenterVertically) { CircularProgressIndicator(Modifier.padding(4.dp)); Text("Reconnaissance en cours…") }
         }
     }
-    SectionCard(if (st.editingMeasurementId != null) "Corriger la mesure" else "Valeurs de la mesure ${st.nextIndex}") {
+    HealthCard {
+        CardHeader(if (st.editingMeasurementId != null) "Corriger la mesure" else "Valeurs de la mesure ${st.nextIndex}", Icons.Filled.Edit, MaterialTheme.colorScheme.primary)
         st.ocrMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-        st.ocrReading?.let { r -> Text("Confiance globale de la lecture : ${Fmt.pct(r.overallConfidence)}", style = MaterialTheme.typography.labelSmall) }
-        FieldRow("Systolique (SYS, mmHg)", st.sys, CardioColors.Systolic, vm::setSys)
-        FieldRow("Diastolique (DIA, mmHg)", st.dia, CardioColors.Diastolic, vm::setDia)
-        FieldRow("Fréquence cardiaque (PUL, /min) — facultatif si non affichée", st.pul, CardioColors.Pulse, vm::setPul)
+        st.ocrReading?.let { r ->
+            Text("Confiance globale de la lecture : ${Fmt.pct(r.overallConfidence)}", style = MaterialTheme.typography.labelMedium)
+            LinearProgressIndicator(
+                progress = { r.overallConfidence.toFloat().coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(6.dp),
+                color = if (r.overallConfidence >= 0.8) Health.colors.favorable else Health.colors.attention,
+            )
+        }
+        val ocr = st.ocrReading != null
+        FieldRow("Systolique (SYS, mmHg) *", st.sys, Health.colors.systolic, vm::setSys, ocr)
+        FieldRow("Diastolique (DIA, mmHg) *", st.dia, Health.colors.diastolic, vm::setDia, ocr)
+        FieldRow("Fréquence cardiaque (PUL, /min) — facultatif si non affichée", st.pul, Health.colors.pulse, vm::setPul, ocr)
+        Text("* champ obligatoire", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         TextButton(onClick = vm::swapSysDia) { Icon(Icons.Filled.SwapVert, null); Text(" Intervertir SYS et DIA") }
         Text("Aucune valeur n'est enregistrée sans votre validation. Les champs signalés doivent être vérifiés sur l'écran du tensiomètre.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Button(onClick = { vm.validateMeasurement() }, modifier = Modifier.fillMaxWidth(), enabled = !st.ocrRunning) { Text("Valider ces valeurs") }
-        if (st.editingMeasurementId == null) OutlinedButton(onClick = vm::goToCapture, modifier = Modifier.fillMaxWidth()) { Text("Reprendre la photo") }
+        PrimaryButton("Valider ces valeurs", { vm.validateMeasurement() }, enabled = !st.ocrRunning, icon = Icons.Filled.Check)
+        if (st.editingMeasurementId == null) SecondaryButton("Reprendre la photo", vm::goToCapture, icon = Icons.Filled.CameraAlt)
     }
     if (st.pendingPlausibility.isNotEmpty()) {
         AlertDialog(
@@ -235,8 +275,17 @@ private fun Validation(st: FlowState, vm: SessionFlowViewModel) {
 }
 
 @Composable
-private fun FieldRow(label: String, f: FieldInput, color: Color, onChange: (String) -> Unit) {
-    Column {
+private fun FieldRow(label: String, f: FieldInput, color: Color, onChange: (String) -> Unit, ocr: Boolean = false) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (ocr) {
+            val (txt, col, ic) = when {
+                f.uncertain && f.text.isBlank() -> Triple("Non lu", Health.colors.alert, Icons.Filled.Error)
+                f.uncertain -> Triple("À vérifier", Health.colors.attention, Icons.Filled.Warning)
+                f.text.isNotBlank() -> Triple("Lu avec confiance", Health.colors.favorable, Icons.Filled.CheckCircle)
+                else -> Triple("Non lu", Health.colors.alert, Icons.Filled.Error)
+            }
+            StatusBadge(txt, col, ic)
+        }
         NumberField(
             label, f.text, onChange, Modifier.fillMaxWidth(), isError = f.uncertain,
             supporting = when {
@@ -301,11 +350,14 @@ private fun Summary(st: FlowState, vm: SessionFlowViewModel, callEmergency: () -
     val timeFmt = DateTimeFormatter.ofPattern("HH:mm:ss")
     var confirmDelete by remember { mutableStateOf<com.cardiosuivi.domain.model.Measurement?>(null) }
     st.symptomAlerts.filter { it.level == AlertLevel.URGENT }.forEach { AlertCard(it, callEmergency) }
-    SectionCard("Mesures") {
-        st.measurements.sortedBy { it.index }.forEach { m ->
+    HealthCard {
+        CardHeader("Récapitulatif des mesures", Icons.Filled.MonitorHeart, Health.colors.systolic, trailing = "${st.measurements.size}/${st.planned}")
+        st.measurements.sortedBy { it.index }.forEachIndexed { i, m ->
+            if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("${m.index}. ${m.systolic}/${m.diastolic} mmHg" + (m.pulse?.let { " · $it /min" } ?: " · pouls non saisi"), fontWeight = FontWeight.Medium)
+                    Text("Mesure ${m.index}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${m.index}. ${m.systolic}/${m.diastolic} mmHg" + (m.pulse?.let { " · $it /min" } ?: " · pouls non saisi"), style = NumberStyles.small)
                     Text("${timeFmt.format(m.measuredAt.atZone(ZoneId.systemDefault()))} · ${m.source.label}", style = MaterialTheme.typography.labelSmall)
                 }
                 IconButton(onClick = { vm.editMeasurement(m) }) { Icon(Icons.Filled.Edit, "Corriger") }
@@ -314,12 +366,13 @@ private fun Summary(st: FlowState, vm: SessionFlowViewModel, callEmergency: () -
         }
         if (st.measurements.size < st.planned) {
             Text("${st.measurements.size} mesure(s) sur ${st.planned} prévues : la séance sera enregistrée comme incomplète.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            OutlinedButton(onClick = vm::goToCapture) { Text("Ajouter la mesure ${st.nextIndex}") }
+            SecondaryButton("Ajouter la mesure ${st.nextIndex}", vm::goToCapture, icon = Icons.Filled.Add)
         }
     }
-    if (stats != null) SectionCard("Calculs de la séance") {
+    if (stats != null) HealthCard {
+        CardHeader("Moyennes de la séance", Icons.Filled.Calculate, Health.colors.diastolic)
         stats.primary?.let { p ->
-            BpValue(Fmt.d0(p.systolic), Fmt.d0(p.diastolic), p.pulse?.let { Fmt.d0(it) })
+            BpValue(Fmt.d0(p.systolic), Fmt.d0(p.diastolic), p.pulse?.let { Fmt.d0(it) }, style = NumberStyles.hero)
             Text("Valeur de séance : ${st.method.label}${if (stats.methodFallback) " — non applicable, moyenne des mesures disponibles" else ""}", style = MaterialTheme.typography.labelSmall)
         }
         HorizontalDivider()
@@ -343,11 +396,25 @@ private fun Summary(st: FlowState, vm: SessionFlowViewModel, callEmergency: () -
         st.symptomAlerts.filter { it.level != AlertLevel.URGENT }.forEach { AlertCard(it) }
         OutlinedTextField(st.notes, vm::setNotes, label = { Text("Notes (contexte, oubli de traitement…)") }, modifier = Modifier.fillMaxWidth())
     }
-    Button(onClick = vm::saveSession, modifier = Modifier.fillMaxWidth(), enabled = st.measurements.isNotEmpty()) {
-        Text(if (st.measurements.size >= st.planned) "Valider la séance" else "Enregistrer la séance incomplète")
-    }
+    PrimaryButton(if (st.measurements.size >= st.planned) "Valider la séance" else "Enregistrer la séance incomplète", vm::saveSession, enabled = st.measurements.isNotEmpty(), icon = Icons.Filled.Check)
     confirmDelete?.let { m ->
         ConfirmDialog("Supprimer la mesure ${m.index} ?", "${m.systolic}/${m.diastolic} sera supprimée.", "Supprimer",
             onConfirm = { vm.deleteMeasurement(m); confirmDelete = null }, onDismiss = { confirmDelete = null }, destructive = true)
+    }
+}
+
+/** Confirmation d'enregistrement : coche animée (sobre, désactivée si les animations sont réduites). */
+@Composable
+private fun SavedConfirmation() {
+    val reduce = com.cardiosuivi.app.ui.theme.LocalReduceMotion.current
+    var shown by remember { mutableStateOf(reduce) }
+    LaunchedEffect(Unit) { shown = true }
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        if (shown) 1f else 0.6f, androidx.compose.animation.core.spring(dampingRatio = 0.55f), label = "confirmation",
+    )
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Health.colors.favorable,
+            modifier = Modifier.size(72.dp).graphicsLayer { scaleX = scale; scaleY = scale })
+        Text("Séance enregistrée", style = MaterialTheme.typography.headlineSmall)
     }
 }

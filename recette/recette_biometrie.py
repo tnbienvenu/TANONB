@@ -59,8 +59,8 @@ if added:
             if find("Commencer", exact=True) is not None: break
             scroll_down()
         tap("Commencer", exact=True)
-    wait("NOUVELLE SÉANCE", 240)
-    tap("Plus"); tap("Paramètres et sécurité")
+    wait("Résumé de votre santé cardiovasculaire", 240)
+    tap("Profil", exact=True); tap_scroll("Paramètres et sécurité")
     tap("Verrouillage biométrique")
     prompt = wait("Déverrouiller CardioSuivi", 120)
     finger(1)

@@ -41,6 +41,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -72,12 +74,13 @@ fun CameraCapture(
 
     LaunchedEffect(Unit) { if (!granted) permissionLauncher.launch(Manifest.permission.CAMERA) }
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    com.cardiosuivi.app.ui.components.HealthCard {
+        com.cardiosuivi.app.ui.components.CardHeader("Photographier le tensiomètre", Icons.Filled.CameraAlt, MaterialTheme.colorScheme.primary)
         Text("Mesure $index : photographiez l'écran du tensiomètre", style = MaterialTheme.typography.titleMedium)
-        Text("Cadrez l'écran entier, de face, sans reflet. Les chiffres doivent être nets.", style = MaterialTheme.typography.bodySmall)
+        Text("Cadrez l'écran entier, de face, sans reflet. Les chiffres doivent être nets.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (granted) {
             Box(
-                Modifier.fillMaxWidth().aspectRatio(3f / 4f).background(Color.Black, RoundedCornerShape(12.dp)),
+                Modifier.fillMaxWidth().aspectRatio(3f / 4f).background(Color.Black, RoundedCornerShape(20.dp)).clip(RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 AndroidView(
@@ -101,6 +104,7 @@ fun CameraCapture(
                 if (busy) CircularProgressIndicator()
             }
             Button(
+                shape = RoundedCornerShape(16.dp),
                 onClick = {
                     busy = true
                     val dir = File(context.cacheDir, "photos").apply { mkdirs() }
@@ -116,7 +120,7 @@ fun CameraCapture(
                     )
                 },
                 enabled = !busy,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             ) {
                 Icon(Icons.Filled.CameraAlt, null)
                 Text("  Prendre la photo")
@@ -127,10 +131,10 @@ fun CameraCapture(
         }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            OutlinedButton(onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, modifier = Modifier.weight(1f)) {
+            OutlinedButton(onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, modifier = Modifier.weight(1f).heightIn(min = 52.dp), shape = RoundedCornerShape(16.dp)) {
                 Icon(Icons.Filled.Image, null); Text(" Importer")
             }
-            OutlinedButton(onClick = onManual, modifier = Modifier.weight(1f)) {
+            OutlinedButton(onClick = onManual, modifier = Modifier.weight(1f).heightIn(min = 52.dp), shape = RoundedCornerShape(16.dp)) {
                 Icon(Icons.Filled.Edit, null); Text(" Saisie manuelle")
             }
         }

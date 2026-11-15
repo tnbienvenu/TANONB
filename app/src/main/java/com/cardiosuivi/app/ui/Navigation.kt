@@ -236,7 +236,7 @@ private fun MainNavigation(vm: AppViewModel, startRequests: MutableStateFlow<Sta
                 composable(Routes.HISTORY) { HistoryScreen(vm, nav) }
                 composable(Routes.CHARTS) { ChartsScreen(vm, nav) }
                 composable(Routes.ANALYSIS) { AnalysisScreen(vm, nav) }
-                composable(Routes.MORE) { MoreScreen(nav) }
+                composable(Routes.MORE) { MoreScreen(vm, nav) }
                 composable(
                     Routes.SESSION,
                     arguments = listOf(

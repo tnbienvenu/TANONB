@@ -60,7 +60,7 @@ class R08_DonneesAnalyseRapportsTest : RecetteBase() {
         record("R08a", "Tableau de bord – moyenne 7 j", "jeu fictif 4 séances", "« 133/84 mmHg » ; 4 séance(s), 4 jour(s)",
             "133/84 ${if (exists("133/84 mmHg")) "affiché" else "absent"} ; ${if (exists("4 séance(s), 4 jour(s)")) "effectifs OK" else "effectifs KO"}",
             exists("133/84 mmHg") && exists("4 séance(s), 4 jour(s)"), "R08_tableau_de_bord_jeu_fictif.png")
-        click("Plus"); click("Paramètres et sécurité")
+        tab("Profil"); click("Paramètres et sécurité")
         click("Moyenne des deux dernières mesures")
         back(); click("Accueil")
         waitText("Moyenne 7 jours")
@@ -74,8 +74,8 @@ class R08_DonneesAnalyseRapportsTest : RecetteBase() {
     @Test
     fun r09_graphiques_analyse_assistant_local() {
         resetApp(); seed(); launch()
-        click("Graphiques")
-        waitText("Touchez un point pour afficher la valeur exacte.")
+        tab("Tendances")
+        waitText("Touchez ou glissez sur le graphique pour afficher la valeur exacte.")
         shot("R09_graphique_tension")
         val chart = compose.onAllNodes(hasContentDescription("Graphique", substring = true))[0]
         chart.performTouchInput { this.click(center) }
@@ -85,24 +85,25 @@ class R08_DonneesAnalyseRapportsTest : RecetteBase() {
         record("R09a", "Graphiques – valeur exacte", "toucher le centre du graphique", "valeur exacte et date affichées", if (tapped) "affichée" else "rien", tapped, "R09_graphique_valeur_touchee.png")
         val counts = exists("4 séance(s), 12 mesure(s), 4 jour(s) avec mesures sur 30") && exists("Jours sans mesure : 26")
         record("R09b", "Graphiques – effectifs et manquants", "période 30 j", "4 séances, 12 mesures, 4 jours sur 30, 26 jours sans mesure", if (counts) "conforme" else "non conforme", counts, "R09_graphique_tension.png")
-        for (k in listOf("Pouls", "Pression pulsée", "Variabilité", "Matin / soir", "Hebdomadaire", "Mensuel", "Jours")) {
-            click(k)
+        // Écran Tendances : toutes les vues sont des cartes successives ; on fait défiler jusqu'à chacune.
+        for (k in listOf("Fréquence cardiaque", "Matin et soir", "Moyennes hebdomadaires", "Moyennes mensuelles", "Variabilité tensionnelle", "Pression pulsée", "Jours de la semaine", "Historique des mesures")) {
+            runCatching { node(k, substring = false).performScrollTo() }
             compose.waitForIdle()
-            shot("R09_graphique_${k.replace(" ", "_").replace("/", "")}")
+            shot("R09_graphique_${k.replace(" ", "_")}")
         }
-        click("Matin / soir")
+        runCatching { node("Matin et soir", substring = false).performScrollTo() }
         val me = exists("Écart soir − matin : -5,0 / -2,0 mmHg.")
-        record("R09c", "Graphiques – matin/soir", "jeu fictif", "écart soir − matin −5,0 / −2,0 ; effectifs insuffisants signalés", if (me) "conforme" else "non conforme", me && exists("Effectifs insuffisants"), "R09_graphique_Matin__soir.png")
+        record("R09c", "Graphiques – matin/soir", "jeu fictif", "écart soir − matin −5,0 / −2,0 ; effectifs insuffisants signalés", if (me) "conforme" else "non conforme", me && exists("Effectifs insuffisants"), "R09_graphique_Matin_et_soir.png")
         click("7 jours")
         record("R09d", "Graphiques – filtre période", "7 jours", "« 4 séance(s) … sur 7 »", if (exists("sur 7.")) "filtré" else "non filtré", exists("sur 7."), "—")
 
-        click("Analyse")
-        waitText("Constats")
+        tab("Analyse IA")
+        waitText("Synthèse générale")
         shot("R09_analyse")
         record("R09e", "Analyse – moyenne 7 j", "jeu fictif", "constat « Moyenne 133/84 mmHg … repère élevée »", if (exists("Moyenne 133/84 mmHg")) "présent" else "absent",
             exists("Moyenne 133/84 mmHg") && exists("élevée"), "R09_analyse.png")
 
-        click("Plus"); click("Assistant IA")
+        click("Ouvrir l'assistant IA")
         click("Quelle est ma moyenne sur les sept derniers jours ?")
         waitText("1. Données observées")
         shot("R09_assistant_local")
@@ -119,7 +120,7 @@ class R08_DonneesAnalyseRapportsTest : RecetteBase() {
         resetApp(); seed()
         runBlocking { c.profile.saveProfile(com.cardiosuivi.domain.model.Profile(displayName = "RECETTE-FICTIF")) }
         launch()
-        click("Plus"); click("Rapports PDF et CSV")
+        tab("Profil"); click("Rapports PDF et CSV")
         click("7 jours")
         click("Générer le rapport PDF", substring = true)
         waitText("Rapport PDF généré.", "Échec", timeout = 180_000)
@@ -161,13 +162,13 @@ class R08_DonneesAnalyseRapportsTest : RecetteBase() {
     @Test
     fun r11_traitements_observations_hbpm_calendrier() {
         resetApp(); launch()
-        click("Plus"); click("Traitements et observations")
+        tab("Profil"); click("Traitements et observations")
         click("Ajouter un traitement")
         waitText("Nouveau traitement")
         val saveBtn = compose.onAllNodes(androidx.compose.ui.test.hasText("Enregistrer").and(androidx.compose.ui.test.hasClickAction()))[0]
         val disabled = runCatching { saveBtn.assertIsNotEnabled(); true }.getOrDefault(false)
         record("R11a", "Traitement – nom vide", "aucun nom", "bouton Enregistrer inactif", if (disabled) "inactif" else "actif", disabled, "—")
-        type("Médicament", "MEDICAMENT-FICTIF")
+        type("Médicament *", "MEDICAMENT-FICTIF")
         type("Posologie prescrite", "1 comprimé (fictif)")
         type("Heure habituelle", "25:99")
         shot("R11_traitement_heure_invalide")

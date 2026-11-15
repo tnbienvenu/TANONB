@@ -214,7 +214,7 @@ fun DashboardScreen(vm: AppViewModel, nav: NavHostController) {
                         color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     TextButton(onClick = { com.cardiosuivi.app.reminders.ExactAlarmSettings.open(context) }) { Text("Autoriser les rappels à l'heure exacte") }
                 }
-                PrimaryButton("Commencer une séance", { nav.navigate(Routes.session(next?.period)) }, icon = Icons.Filled.PlayArrow)
+                PrimaryButton("Commencer une séance", { nav.navigate(Routes.session()) }, icon = Icons.Filled.PlayArrow)
                 TextButton(onClick = { nav.navigate(Routes.REMINDERS) }) { Text("Modifier les rappels") }
             }
         }

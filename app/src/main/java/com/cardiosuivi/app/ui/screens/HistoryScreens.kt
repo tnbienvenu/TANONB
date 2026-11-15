@@ -8,6 +8,24 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import com.cardiosuivi.app.ui.components.CardHeader
+import com.cardiosuivi.app.ui.components.HealthCard
+import com.cardiosuivi.app.ui.components.PrimaryButton
+import com.cardiosuivi.app.ui.components.SecondaryButton
+import com.cardiosuivi.app.ui.components.SegmentedControl
+import com.cardiosuivi.app.ui.components.StatusBadge
+import com.cardiosuivi.app.ui.theme.Health
+import com.cardiosuivi.app.ui.theme.NumberStyles
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
@@ -59,7 +77,10 @@ private enum class HistoryFilter(val label: String) { ALL("Toutes"), MORNING("Ma
 fun HistoryScreen(vm: AppViewModel, nav: NavHostController) {
     val sessions by vm.sessions.collectAsState()
     val settings by vm.settings.collectAsState()
+    val inProgress by vm.inProgress.collectAsState()
     var filter by rememberSaveable { mutableStateOf(HistoryFilter.ALL) }
+    val c = Health.colors
+    val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
     val shown = sessions.filter { it.status.isValidated }.filter {
         when (filter) {
             HistoryFilter.ALL -> true
@@ -68,26 +89,46 @@ fun HistoryScreen(vm: AppViewModel, nav: NavHostController) {
             HistoryFilter.INCOMPLETE -> it.status == SessionStatus.INCOMPLETE
         }
     }
-    ScreenScaffold("Historique", onBack = null) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            HistoryFilter.entries.forEach { f -> FilterChip(selected = filter == f, onClick = { filter = f }, label = { Text(f.label) }) }
+    ScreenScaffold("Mesures", onBack = null, subtitle = "Séances de trois mesures et historique") {
+        PrimaryButton("Nouvelle séance", { nav.navigate(Routes.session()) }, icon = Icons.Filled.Add)
+        inProgress?.let { s ->
+            HealthCard(onClick = { nav.navigate(Routes.session(resume = s.id)) }) {
+                CardHeader("Séance en cours", Icons.Filled.MonitorHeart, MaterialTheme.colorScheme.primary, chevron = true)
+                Text("${s.measurements.size}/${s.plannedMeasurements} mesure(s) enregistrée(s), non validée. Touchez pour reprendre.", style = MaterialTheme.typography.bodyMedium)
+            }
         }
-        Text("${shown.size} séance(s) validée(s) · valeur de séance : ${settings.aggregation.label}", style = MaterialTheme.typography.labelSmall)
-        if (shown.isEmpty()) EmptyState("Aucune séance validée.")
+        SegmentedControl(HistoryFilter.entries.toList(), filter, { it.label }, { filter = it })
+        Text("${shown.size} séance(s) validée(s) · valeur de séance : ${settings.aggregation.label}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (shown.isEmpty()) EmptyState("Aucune séance validée.", Icons.Filled.MonitorHeart)
         shown.groupBy { it.localDate }.forEach { (date, list) ->
-            Text(Fmt.dateLong(date).replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleSmall, modifier = Modifier.fillMaxWidth())
-            list.forEach { s ->
-                val st = SessionStatistics.compute(s, settings.aggregation)
-                SectionCard(modifier = Modifier.clickable { nav.navigate(Routes.sessionDetail(s.id)) }) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatusDot(if (s.status == SessionStatus.COMPLETED) CardioColors.Done else CardioColors.Incomplete)
-                        Text("${s.period.label} · ${s.measurements.size} mesure(s) · ${s.status.label}", style = MaterialTheme.typography.labelMedium)
+            Text(Fmt.dateLong(date).replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(top = 6.dp).semantics { heading() })
+            HealthCard(contentPadding = 6.dp) {
+                list.forEachIndexed { i, s ->
+                    if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 10.dp))
+                    val st = SessionStatistics.compute(s, settings.aggregation)
+                    val complete = s.status == SessionStatus.COMPLETED
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { nav.navigate(Routes.sessionDetail(s.id)) }.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("${timeFmt.format(s.startedAt.atZone(vm.zone))} · ${s.period.label}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            st.primary?.let { p ->
+                                Row(verticalAlignment = Alignment.Bottom) {
+                                    Text("${Fmt.d0(p.systolic)}/${Fmt.d0(p.diastolic)}", style = NumberStyles.medium)
+                                    Text(" mmHg", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 3.dp))
+                                    p.pulse?.let { Text("   ${Fmt.d0(it)} bpm", style = MaterialTheme.typography.titleSmall, color = c.pulse, modifier = Modifier.padding(bottom = 2.dp)) }
+                                }
+                            }
+                            Text("${s.measurements.size} mesure(s) : " + s.measurements.joinToString("  ·  ") { "${it.systolic}/${it.diastolic}" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (s.symptoms.isNotEmpty()) Text("Symptômes : ${s.symptoms.joinToString { it.label.lowercase() }}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                        }
+                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            StatusBadge(if (complete) "Complète" else "Incomplète", if (complete) c.favorable else c.attention, if (complete) Icons.Filled.CheckCircle else Icons.Filled.Warning)
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
-                    st.primary?.let { p ->
-                        Text("${Fmt.d0(p.systolic)}/${Fmt.d0(p.diastolic)} mmHg" + (p.pulse?.let { " · ${Fmt.d0(it)} /min" } ?: ""), style = MaterialTheme.typography.titleLarge)
-                    }
-                    Text(s.measurements.joinToString("  ·  ") { "${it.systolic}/${it.diastolic}" }, style = MaterialTheme.typography.bodySmall)
-                    if (s.symptoms.isNotEmpty()) Text("Symptômes : ${s.symptoms.joinToString { it.label.lowercase() }}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -112,18 +153,23 @@ fun SessionDetailScreen(vm: AppViewModel, id: Long, onBack: () -> Unit) {
         if (s == null) { Text("Séance introuvable."); return@ScreenScaffold }
         val st = SessionStatistics.compute(s, settings.aggregation)
         Text("${Fmt.dateLong(s.localDate).replaceFirstChar { it.uppercase() }} · ${s.period.label} · ${s.protocol.label} · ${s.arm.label}", style = MaterialTheme.typography.bodySmall)
-        SectionCard("Valeur de séance") {
-            st.primary?.let { p -> BpValue(Fmt.d0(p.systolic), Fmt.d0(p.diastolic), p.pulse?.let { Fmt.d0(it) }) }
-            Text("${settings.aggregation.label} · statut : ${s.status.label}", style = MaterialTheme.typography.labelSmall)
+        HealthCard {
+            CardHeader("Valeur de séance", Icons.Filled.MonitorHeart, Health.colors.systolic)
+            st.primary?.let { p -> BpValue(Fmt.d0(p.systolic), Fmt.d0(p.diastolic), p.pulse?.let { Fmt.d0(it) }, style = NumberStyles.hero) }
+            val complete = s.status == SessionStatus.COMPLETED
+            StatusBadge(s.status.label, if (complete) Health.colors.favorable else Health.colors.attention, if (complete) Icons.Filled.CheckCircle else Icons.Filled.Warning)
+            Text(settings.aggregation.label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         SectionCard("Mesures") {
-            s.measurements.forEach { m ->
+            s.measurements.forEachIndexed { i, m ->
+                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("${m.index}. ${m.systolic}/${m.diastolic} mmHg" + (m.pulse?.let { " · $it /min" } ?: ""), fontWeight = FontWeight.Medium)
-                        Text("${timeFmt.format(m.measuredAt.atZone(vm.zone))} · ${m.source.label}" + (m.ocrConfidence?.let { " · confiance OCR ${Fmt.pct(it)}" } ?: ""), style = MaterialTheme.typography.labelSmall)
+                        Text("Mesure ${m.index}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${m.index}. ${m.systolic}/${m.diastolic} mmHg" + (m.pulse?.let { " · $it /min" } ?: ""), style = NumberStyles.small)
+                        Text("${timeFmt.format(m.measuredAt.atZone(vm.zone))} · ${m.source.label}" + (m.ocrConfidence?.let { " · confiance OCR ${Fmt.pct(it)}" } ?: ""), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    IconButton(onClick = { editing = m }) { Icon(Icons.Filled.Edit, "Corriger") }
+                    IconButton(onClick = { editing = m }) { Icon(Icons.Filled.Edit, "Corriger la mesure ${m.index}") }
                 }
             }
         }
@@ -142,7 +188,7 @@ fun SessionDetailScreen(vm: AppViewModel, id: Long, onBack: () -> Unit) {
         SectionCard("Symptômes et notes") {
             Text(if (s.symptoms.isEmpty()) "Aucun symptôme signalé." else s.symptoms.joinToString { it.label })
             OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth())
-            if (notes != s.notes) OutlinedButton(onClick = { vm.updateSession(s.copy(notes = notes)) }) { Text("Enregistrer la note") }
+            if (notes != s.notes) SecondaryButton("Enregistrer la note", { vm.updateSession(s.copy(notes = notes)) })
         }
         HorizontalDivider()
     }
@@ -156,9 +202,9 @@ fun SessionDetailScreen(vm: AppViewModel, id: Long, onBack: () -> Unit) {
             title = { Text("Corriger la mesure ${m.index}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    NumberField("Systolique", sys, { sys = it })
-                    NumberField("Diastolique", dia, { dia = it })
-                    NumberField("Pouls (facultatif)", pul, { pul = it })
+                    NumberField("Systolique *", sys, { sys = it }, unit = "mmHg", isError = sys.toIntOrNull() == null, supporting = if (sys.toIntOrNull() == null) "Obligatoire" else null)
+                    NumberField("Diastolique *", dia, { dia = it }, unit = "mmHg", isError = dia.toIntOrNull() == null, supporting = if (dia.toIntOrNull() == null) "Obligatoire" else null)
+                    NumberField("Pouls (facultatif)", pul, { pul = it }, unit = "bpm")
                 }
             },
             confirmButton = {

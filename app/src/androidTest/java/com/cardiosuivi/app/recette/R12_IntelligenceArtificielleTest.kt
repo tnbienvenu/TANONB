@@ -51,7 +51,7 @@ class R12_IntelligenceArtificielleTest : RecetteBase() {
         server.start()
         c.aiBaseUrlOverride = server.url("/").toString().trimEnd('/')
         resetApp(); seed(); launch()
-        click("Plus"); click("Assistant IA"); click("Configurer l'IA")
+        tab("Profil"); click("Assistant IA"); click("Configurer l'IA")
         click("Anthropic Claude")
         waitText("Aucune clé enregistrée.")
         type("Nouvelle clé", "clé avec accent")

@@ -73,7 +73,7 @@ class R18_OcrEcransTest : RecetteBase() {
         shell("content call --uri content://media/external/file --method scan_volume --arg external_primary")
         Thread.sleep(5000)
         resetApp(); launch()
-        click("NOUVELLE SÉANCE", substring = true)
+        click("Commencer une séance")
         click("Je suis déjà reposé(e) : commencer")
         answerPermissionDialog(true, 20_000)
         waitText("Importer", timeout = 90_000)
@@ -116,7 +116,7 @@ class R18_OcrEcransTest : RecetteBase() {
         record("R20c", "Alarmes exactes refusées", "appops SCHEDULE_EXACT_ALARM deny", "repli sur alarme approchée (pas de plantage)", "canScheduleExact=${c.reminderScheduler.canScheduleExact()}",
             !c.reminderScheduler.canScheduleExact() && c.reminderScheduler.rescheduleAll(runBlocking { c.settings.current().reminders }).isNotEmpty(), "—")
         back(); click("Accueil")
-        click("NOUVELLE SÉANCE", substring = true)
+        click("Commencer une séance")
         click("Je suis déjà reposé(e) : commencer")
         answerPermissionDialog(allow = false, timeout = 20_000)
         waitText("n'est pas accordée", timeout = 60_000)
@@ -134,7 +134,7 @@ class R18_OcrEcransTest : RecetteBase() {
     fun r21_orientation_tailles_pliable() {
         resetApp(); launch()
         // Formulaire en cours de saisie puis rotation
-        click("Plus"); click("Profil personnel")
+        tab("Profil"); click("Profil personnel")
         type("Nom ou pseudonyme", "ROTATION-FICTIF")
         device.setOrientationLeft(); Thread.sleep(6000)
         shot("R21_profil_paysage")
@@ -143,7 +143,7 @@ class R18_OcrEcransTest : RecetteBase() {
         device.setOrientationNatural(); Thread.sleep(5000)
         back(); click("Accueil")
         // Séance en cours puis rotation
-        click("NOUVELLE SÉANCE", substring = true)
+        click("Commencer une séance")
         click("Je suis déjà reposé(e) : commencer")
         answerPermissionDialog(true, 20_000)
         click("Saisie manuelle", substring = true)
@@ -159,13 +159,13 @@ class R18_OcrEcransTest : RecetteBase() {
         val kept3 = exists("133", false)
         record("R21c", "Pliable – passage à l'écran externe pendant la saisie", "wm size 1056×1066, 360 dpi", "valeurs conservées, interface utilisable", if (kept3) "conservées" else "perdues", kept3, "R21_ecran_externe_pendant_seance.png")
         back(); runCatching { click("Abandonner") }
-        waitText("NOUVELLE SÉANCE", timeout = 60_000)
+        waitText("Commencer une séance", timeout = 60_000)
         shot("R21_accueil_ecran_externe")
-        record("R21d", "Écran externe – accueil", "1056×1066", "bouton principal visible, contenu défilant", if (exists("NOUVELLE SÉANCE")) "visible" else "absent", exists("NOUVELLE SÉANCE"), "R21_accueil_ecran_externe.png")
+        record("R21d", "Écran externe – accueil", "1056×1066", "bouton principal visible, contenu défilant", if (exists("Commencer une séance")) "visible" else "absent", exists("Commencer une séance"), "R21_accueil_ecran_externe.png")
         for ((label, size, dens) in listOf(Triple("petit téléphone", "720x1280", "320"), Triple("tablette / grand écran déplié", "1600x2560", "320"))) {
             shell("wm size $size"); shell("wm density $dens"); Thread.sleep(8000)
             shot("R21_accueil_${size}")
-            record("R21-$size", "Taille d'écran – $label", size, "accueil affiché sans chevauchement, largeur de contenu limitée", if (exists("NOUVELLE SÉANCE")) "affiché" else "absent", exists("NOUVELLE SÉANCE"), "R21_accueil_${size}.png")
+            record("R21-$size", "Taille d'écran – $label", size, "accueil affiché sans chevauchement, largeur de contenu limitée", if (exists("Commencer une séance")) "affiché" else "absent", exists("Commencer une séance"), "R21_accueil_${size}.png")
         }
         shell("wm size reset"); shell("wm density reset"); Thread.sleep(6000)
     }

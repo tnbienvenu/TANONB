@@ -27,7 +27,7 @@ class R15_RappelsTest : RecetteBase() {
     @Test
     fun r15_programmation_rappels_et_ecran() {
         resetApp(); launch()
-        click("Plus"); click("Rappels")
+        tab("Profil"); click("Rappels")
         waitText("Jours de mesure")
         shot("R15_ecran_rappels")
         val defaults = exists("à 07:00") && exists("à 19:00")
@@ -57,7 +57,7 @@ class R15_RappelsTest : RecetteBase() {
         click("Annuler")
         record("R15f", "Sélecteur d'heure", "ouvrir / annuler", "dialogue d'heure 24 h affiché puis fermé sans modification",
             "heure matin=${runBlocking { c.settings.current().reminders.morningTime }}", runBlocking { c.settings.current().reminders.morningTime } == LocalTime.of(7, 0), "R15_selecteur_heure.png")
-        relaunch(); click("Plus"); click("Rappels")
+        relaunch(); tab("Profil"); click("Rappels")
         record("R15g", "Rappels – persistance", "relance", "90 s et 2 mesures conservés", if (exists("90 s")) "conservés" else "perdus", runBlocking { c.settings.current().intervalSeconds } == 90, "—")
     }
 

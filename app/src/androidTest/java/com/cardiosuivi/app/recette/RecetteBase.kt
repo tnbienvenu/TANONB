@@ -102,14 +102,14 @@ abstract class RecetteBase {
 
     protected fun launch() {
         scenario = ActivityScenario.launch(MainActivity::class.java)
-        waitText("NOUVELLE SÉANCE", "Bienvenue dans CardioSuivi", timeout = 120_000)
+        waitText("Commencer une séance", "Bienvenue dans CardioSuivi", timeout = 120_000)
         answerPermissionDialog(timeout = 8_000)
     }
 
     protected fun relaunch() {
         scenario?.close()
         scenario = ActivityScenario.launch(MainActivity::class.java)
-        waitText("NOUVELLE SÉANCE", "Bienvenue dans CardioSuivi", "CardioSuivi est verrouillé", timeout = 120_000)
+        waitText("Commencer une séance", "Bienvenue dans CardioSuivi", "CardioSuivi est verrouillé", timeout = 120_000)
         answerPermissionDialog(timeout = 5_000)
     }
 
@@ -154,6 +154,14 @@ abstract class RecetteBase {
     fun node(text: String, substring: Boolean = true): SemanticsNodeInteraction {
         waitText(text, substring = substring)
         return compose.onAllNodesWithText(text, substring = substring, useUnmergedTree = true)[0]
+    }
+
+    /** Onglet de la barre de navigation (rôle « Tab »), distinct des cartes portant le même titre. */
+    fun tab(label: String) {
+        waitText(label, substring = false)
+        compose.onAllNodes(hasText(label, substring = false).and(androidx.compose.ui.test.SemanticsMatcher.expectValue(
+            androidx.compose.ui.semantics.SemanticsProperties.Role, androidx.compose.ui.semantics.Role.Tab)))[0].performClick()
+        compose.waitForIdle()
     }
 
     fun click(text: String, substring: Boolean = false) {

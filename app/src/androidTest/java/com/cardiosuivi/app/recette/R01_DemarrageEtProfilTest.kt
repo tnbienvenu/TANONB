@@ -27,7 +27,7 @@ class R01_DemarrageEtProfilTest : RecetteBase() {
         click("Commencer")
         val asked = answerPermissionDialog(allow = true, timeout = 60_000) || permissionDialogsSeen > seen0
         record("R01c", "Autorisation des notifications (Android 13+)", "premier accès au tableau de bord", "fenêtre système de demande affichée", if (asked) "affichée puis acceptée" else "non affichée", asked, "ECHEC_attente_NOUVELLE SÉANCE.png (run 1)")
-        waitText("NOUVELLE SÉANCE", timeout = 120_000)
+        waitText("Commencer une séance", timeout = 120_000)
         shot("R01_tableau_de_bord_vide")
         record("R01", "Avertissement initial", "case non cochée puis cochée",
             "Bouton inactif sans case ; tableau de bord après acceptation",
@@ -41,7 +41,7 @@ class R01_DemarrageEtProfilTest : RecetteBase() {
     fun r02_profil_formulaire_complet() {
         resetApp()
         launch()
-        click("Plus"); click("Profil personnel")
+        tab("Profil"); click("Profil personnel")
         waitText("Nom ou pseudonyme")
         shot("R02_profil_vide")
 
@@ -82,7 +82,7 @@ class R01_DemarrageEtProfilTest : RecetteBase() {
         // 3. Valeurs normales
         type("Nom ou pseudonyme", "RECETTE-FICTIF")
         click("Homme")
-        type("Taille (cm)", "176"); type("Poids (kg)", "78,5")
+        type("Taille", "176"); type("Poids", "78,5")
         type("Diastolique <", "85")
         type("Antécédents médicaux", "Antécédent fictif de test")
         type("Observations complémentaires", "Observation fictive")
@@ -99,7 +99,7 @@ class R01_DemarrageEtProfilTest : RecetteBase() {
         back(); click("Profil personnel")
         val kept = exists("RECETTE-FICTIF") && exists("15/06/1958") && exists("78,5")
         record("R02h", "Profil – persistance écran", "fermer/rouvrir l'écran", "valeurs réaffichées", if (kept) "réaffichées" else "perdues", kept, "—")
-        relaunch(); click("Plus"); click("Profil personnel")
+        relaunch(); tab("Profil"); click("Profil personnel")
         val kept2 = exists("RECETTE-FICTIF") && exists("176")
         shot("R02i_profil_apres_relance")
         record("R02i", "Profil – persistance application", "relance de l'activité", "valeurs réaffichées", if (kept2) "réaffichées" else "perdues", kept2, "R02i_profil_apres_relance.png")
