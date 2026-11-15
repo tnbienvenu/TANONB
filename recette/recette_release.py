@@ -7,6 +7,8 @@ from pilote_adb import *
 PKG = "com.cardiosuivi.app"
 APK = "/home/user/TANONB/app/build/outputs/apk/release/app-x86_64-release.apk"
 out = sys.argv[1] if len(sys.argv) > 1 else "/tmp/recette_release.tsv"
+import atexit
+atexit.register(lambda: open(out, "w").write("\n".join(LOG) + "\n"))
 
 subprocess.run(ADB + ["uninstall", PKG], capture_output=True)
 r = subprocess.run(ADB + ["install", "-r", APK], capture_output=True, text=True)
@@ -22,6 +24,9 @@ record("RL02", "Release – écran protégé", "capture d'écran système", "cap
 for _ in range(3):
     if find("J'ai compris") is None: scroll_down()
 tap("J'ai compris")
+for _ in range(4):
+    if find("Commencer", exact=True) is not None: break
+    scroll_down()
 tap("Commencer", exact=True)
 ok = wait("NOUVELLE SÉANCE", 240)
 record("RL03", "Release – tableau de bord", "acceptation", "tableau de bord", "affiché" if ok else "absent", ok)
