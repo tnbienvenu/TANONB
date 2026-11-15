@@ -98,12 +98,11 @@ class R18_OcrEcransTest : RecetteBase() {
 
     @Test
     fun r20_permissions_refusees() {
-        resetApp(); launch()
-        shell("pm revoke ${ctx.packageName} android.permission.CAMERA")
-        shell("pm revoke ${ctx.packageName} android.permission.POST_NOTIFICATIONS")
+        // Pré-requis (côté hôte, avant le lancement : un retrait d'autorisation tue le processus) :
+        //   pm revoke … CAMERA ; pm revoke … POST_NOTIFICATIONS
         shell("appops set ${ctx.packageName} SCHEDULE_EXACT_ALARM deny")
         permissionAnswer = false // toute fenêtre d'autorisation sera refusée dans ce scénario
-        relaunch()
+        resetApp(); launch()
         Thread.sleep(2000)
         answerPermissionDialog(allow = false, timeout = 10_000)
         waitText("Les notifications sont bloquées", timeout = 30_000)
