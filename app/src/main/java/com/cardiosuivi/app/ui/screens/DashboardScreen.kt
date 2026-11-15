@@ -238,7 +238,7 @@ fun DashboardScreen(vm: AppViewModel, nav: NavHostController) {
                     val comp = r7.completeness?.completionRate
                     StatTile("Complétude du suivi", comp?.let { Fmt.pct(it) } ?: "—", r7.completeness?.let { "${it.doneSlots + it.incompleteSlots}/${it.expectedSlots - it.pendingSlots} séances prévues (7 j)" } ?: "aucune séance programmée", modifier = tileMod)
                 }
-                Text("Fréquence cardiaque moyenne (7 j) : " + (r7.overall.pulse.mean?.let { "${Fmt.d0(it)} bpm" } ?: "—") + " · Séances (7 j) : ${r7.sessionCount}",
+                Text("Fréquence cardiaque moyenne (7 j) : " + (r7.overall.pulse.mean?.let { "${Fmt.d0(it)} bpm" } ?: "—") + " · Séances (7 j) : ${r7.sessionCount} séance(s), ${r7.daysWithData} jour(s)",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (t != null) Text(
                     if (abs(t.systolicSlopePerWeek) < 1 && abs(t.diastolicSlopePerWeek) < 1) "Tendance sur 30 jours : stable." else "Tendance sur 30 jours : ${Fmt.signed1(t.systolicSlopePerWeek)} / ${Fmt.signed1(t.diastolicSlopePerWeek)} mmHg par semaine.",

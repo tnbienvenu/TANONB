@@ -85,8 +85,10 @@ class R03_SeancesTest : RecetteBase() {
             "${s.size} séance(s), statut ${s.firstOrNull()?.status}, mesures ${s.firstOrNull()?.measurements?.map { "${it.systolic}/${it.diastolic}@${it.measuredAt}" }}",
             ok && s[0].measurements.zipWithNext().all { (a, b) -> a.measuredAt < b.measuredAt })
         shot("R03_tableau_de_bord_apres")
-        record("R03e", "Tableau de bord", "après séance", "Dernière séance 141/91/74 affichée", if (exists("Dernière tension") && exists("141", false) && exists("91", false)) "affichée" else "absente",
-            exists("141", false) && exists("91", false), "R03_tableau_de_bord_apres.png")
+        // Refonte 1.1 : la carte « Dernière tension » affiche la dernière mesure (136/88) en grand et la moyenne de séance (141/91).
+        val dash = exists("Dernière tension") && exists("136", false) && exists("88", false) && exists("Moyenne de la séance : 141/91 mmHg")
+        record("R03e", "Tableau de bord", "après séance", "dernière mesure 136/88 et moyenne de séance 141/91 affichées", if (dash) "affichées" else "absentes",
+            dash, "R03_tableau_de_bord_apres.png")
 
         tab("Mesures")
         waitText("Complète", substring = true)

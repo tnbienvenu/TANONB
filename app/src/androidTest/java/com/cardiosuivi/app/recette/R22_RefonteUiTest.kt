@@ -75,7 +75,7 @@ class R22_RefonteUiTest : RecetteBase() {
         resetApp(); seedDemo(); launch()
 
         // --- Tableau de bord ---
-        waitText("Résumé de votre santé cardiovasculaire")
+        waitText("Bonjour Démo (fictif)"); waitText("Moyenne de la séance"); Thread.sleep(1500)
         shot("UI_01_accueil_haut")
         val lastOk = exists("Bonjour Démo (fictif)") && exists("128", false) && exists("82", false) && exists("72", false)
         record("R22a", "Accueil – dernière tension", "séance fictive 131/84/74, 129/83/72, 128/82/72", "en-tête « Bonjour », dernière mesure 128 / 82 / 72 en grand",
