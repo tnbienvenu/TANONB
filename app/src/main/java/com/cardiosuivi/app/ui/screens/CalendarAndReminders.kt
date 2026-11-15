@@ -165,6 +165,12 @@ fun RemindersScreen(vm: AppViewModel, nav: NavHostController) {
     val context = LocalContext.current
 
     ScreenScaffold("Programmation des rappels", onBack = { nav.popBackStack() }) {
+        if (r.enabled && !vm.c.reminderScheduler.canScheduleExact()) {
+            SectionCard("Heure exacte non autorisée") {
+                Text("Sans l'autorisation « Alarmes et rappels », Android peut retarder les rappels jusqu'à 10 minutes.", style = MaterialTheme.typography.bodySmall)
+                Button(onClick = { com.cardiosuivi.app.reminders.ExactAlarmSettings.open(context) }) { Text("Autoriser les rappels à l'heure exacte") }
+            }
+        }
         SectionCard {
             SwitchRow("Rappels activés", "Notifications émises par l'application Android aux horaires choisis", r.enabled) { vm.setReminders(r.copy(enabled = it)) }
         }

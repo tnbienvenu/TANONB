@@ -63,22 +63,29 @@ class R15_RappelsTest : RecetteBase() {
 
     @Test
     fun r16_notification_reporter_ignorer_commencer() {
-        resetApp(); launch()
+        resetApp()
+        shell("appops set ${ctx.packageName} SCHEDULE_EXACT_ALARM default")
+        launch()
+        val prompt = !c.reminderScheduler.canScheduleExact() && exists("Autoriser les rappels à l'heure exacte")
+        shot("R16_alerte_heure_exacte")
+        record("R16p", "Alarmes exactes non autorisées (Android 14, défaut)", "installation neuve", "alerte sur l'accueil + bouton vers « Alarmes et rappels »",
+            "canScheduleExact=${c.reminderScheduler.canScheduleExact()}, alerte=${exists("Autoriser les rappels à l'heure exacte")}", prompt || c.reminderScheduler.canScheduleExact(), "R16_alerte_heure_exacte.png")
+        shell("appops set ${ctx.packageName} SCHEDULE_EXACT_ALARM allow")
         // Programme un rappel « matin » dans 2 minutes, tous les jours.
         val now = ZonedDateTime.now()
         val t = now.toLocalTime().plusMinutes(2).withSecond(0).withNano(0)
         val cfg = ReminderConfig(days = java.time.DayOfWeek.entries.toSet(), morningTime = t, eveningEnabled = false)
         runBlocking { c.settings.setReminders(cfg) }
         c.reminderScheduler.rescheduleAll(cfg)
-        record("R16a", "Alarme exacte", "rappel à $t", "alarme exacte si « Alarmes et rappels » autorisé", "canScheduleExact=${c.reminderScheduler.canScheduleExact()}", true, "—")
+        record("R16a", "Alarme exacte", "autorisation accordée, rappel à $t", "alarme exacte programmée", "canScheduleExact=${c.reminderScheduler.canScheduleExact()}", c.reminderScheduler.canScheduleExact(), "R15_dumpsys_alarm.txt")
         scenario?.close()
         device.pressHome()
         device.openNotification()
-        val n = device.wait(Until.findObject(By.textContains("Séance de tension du matin")), 6 * 60_000L)
+        val n = device.wait(Until.findObject(By.textContains("Séance de tension du matin")), 9 * 60_000L)
         Thread.sleep(1500)
         shot("R16_notification")
         record("R16b", "Notification de rappel", "attente du déclenchement (~2 min)", "notification « Séance de tension du matin » avec Commencer / Reporter… / Ignorer",
-            if (n != null) "reçue à ${LocalTime.now().withNano(0)}" else "non reçue en 6 min", n != null && device.hasObject(By.textContains("Reporter")), "R16_notification.png")
+            if (n != null) "reçue à ${LocalTime.now().withNano(0)}" else "non reçue en 9 min", n != null && device.hasObject(By.textContains("Reporter")), "R16_notification.png")
         // Reporter → dialogue 10/15/30
         device.findObject(By.textContains("Reporter"))?.click()
         val dlg = device.wait(Until.findObject(By.textContains("Dans 10 minutes")), 60_000)

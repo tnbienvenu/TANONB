@@ -107,3 +107,17 @@ class ReminderScheduler(private val context: Context) {
     private fun requestCode(p: SessionPeriod) = if (p == SessionPeriod.MORNING) 101 else 102
     private fun snoozeRequestCode(p: SessionPeriod) = if (p == SessionPeriod.MORNING) 201 else 202
 }
+
+/** Ouvre le réglage système « Alarmes et rappels » de l'application (Android 12+). */
+object ExactAlarmSettings {
+    fun open(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            runCatching {
+                context.startActivity(
+                    Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, android.net.Uri.parse("package:${context.packageName}"))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
+            }
+        }
+    }
+}

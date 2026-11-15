@@ -138,6 +138,12 @@ fun DashboardScreen(vm: AppViewModel, nav: NavHostController) {
                 Text("Les notifications sont bloquées : vous ne recevrez pas les rappels.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 TextButton(onClick = { nav.navigate(Routes.PERMISSIONS) }) { Text("Vérifier les autorisations") }
             }
+            // Android 12+ : sans l'autorisation « Alarmes et rappels », Android peut retarder le rappel jusqu'à 10 minutes.
+            if (settings.reminders.enabled && !vm.c.reminderScheduler.canScheduleExact()) {
+                Text("Les rappels peuvent être décalés de quelques minutes : autorisez « Alarmes et rappels » pour qu'ils arrivent à l'heure exacte.",
+                    color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = { com.cardiosuivi.app.reminders.ExactAlarmSettings.open(context) }) { Text("Autoriser les rappels à l'heure exacte") }
+            }
             val next = vm.nextSlots(4)
             if (!settings.reminders.enabled || next.isEmpty()) {
                 Text("Aucun rappel programmé.")
