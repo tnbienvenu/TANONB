@@ -100,3 +100,23 @@ fonctionnel est constaté a posteriori, et 2 contrôles de taille d'écran véri
 
 **Non exécuté** : aucun test sur un Motorola Razr 50s physique (écran externe réel, charnière, capteur d'empreinte,
 appareil photo réel en conditions de mesure, autonomie, performances réelles).
+
+### APK signé de production
+
+- `dist/CardioSuivi-1.1.0-arm64-v8a.apk` (Razr 50s : arm64-v8a), versionCode 4, versionName 1.1.0, minifié R8.
+  SHA-256 : `994f36100bf9b916a0aa24f6e13f15aa8f485bc8cd674920efabafbc157f46dc`.
+- Signé avec **le même certificat que la 1.0.x** (SHA-256 `c526072e…a500b7`, vérifié par `apksigner`) : s'installe en
+  mise à jour par-dessus la 1.0.2 sans perte de données. La base de données et ses modèles n'ont pas changé ; la mise à
+  jour 1.0.2 → 1.1.0 elle-même n'a toutefois pas été rejouée sur l'émulateur.
+- Recette de l'APK release (variante x86_64, même code) : `recette/journal_release_1.1.0.tsv` — RL00 à RL10 réussis
+  (installation, écran protégé contre les captures, séance, calculs, enregistrement, JSON de l'IA après R8, rapport PDF,
+  absence de plantage, redémarrage). RL09 avait d'abord été signalé à tort : le filtre comptait un plantage antérieur
+  de la variante **debug** ; filtre corrigé (nom de processus exact, tampon vidé au départ).
+- Aucune donnée fictive dans l'APK de production : les jeux de démonstration n'existent que dans les tests instrumentés.
+
+### Anomalie observée, non reproduite
+
+- 15/11 20:37, variante debug, pendant la fermeture de l'activité à la fin d'un test instrumenté R03 (au moment où ce
+  test échouait sur une attente de libellé, corrigée ensuite) : `ArrayIndexOutOfBoundsException` interne à Compose
+  (`SlotTable.moveSlotGapTo`, destruction de la composition). Non reproduite dans les ~5 h de tests suivantes ni sur
+  l'APK release. Origine probable : bibliothèque Compose lors de l'arrêt forcé par le cadre de test ; à surveiller.

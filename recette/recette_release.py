@@ -11,6 +11,7 @@ import atexit
 atexit.register(lambda: open(out, "w").write("\n".join(LOG) + "\n"))
 
 subprocess.run(ADB + ["uninstall", PKG], capture_output=True)
+subprocess.run(ADB + ["logcat", "-b", "crash", "-c"], capture_output=True)  # seuls les plantages de cette exécution comptent
 r = subprocess.run(ADB + ["install", "-r", APK], capture_output=True, text=True)
 record("RL00", "APK release – installation", "app-x86_64-release.apk signé", "installation réussie", r.stdout.strip()[-40:], "Success" in r.stdout)
 sh("pm", "grant", PKG, "android.permission.POST_NOTIFICATIONS")
@@ -67,7 +68,7 @@ tap("Générer le rapport PDF")
 ok = wait("Rapport PDF généré.", 240)
 record("RL08", "Release – rapport PDF", "période 30 jours", "« Rapport PDF généré. »", "OK" if ok else "échec", ok)
 crash = subprocess.run(ADB + ["logcat", "-d", "-b", "crash"], capture_output=True, text=True).stdout
-record("RL09", "Release – plantages", "journal crash du système", "aucun plantage de com.cardiosuivi.app", "aucun" if PKG not in crash else "PLANTAGE", PKG not in crash)
+record("RL09", "Release – plantages", "journal crash du système", "aucun plantage de com.cardiosuivi.app", "aucun" if f"Process: {PKG}," not in crash else "PLANTAGE", f"Process: {PKG}," not in crash)
 
 # Persistance après arrêt forcé du processus
 sh("am", "force-stop", PKG)

@@ -1,1 +1,2 @@
 a26068a01e5f27f3c521200f12906c04094478e2dc1ef4f5ccc56cfc3f2c34a9  CardioSuivi-1.0.2-arm64-v8a.apk
+994f36100bf9b916a0aa24f6e13f15aa8f485bc8cd674920efabafbc157f46dc  CardioSuivi-1.1.0-arm64-v8a.apk
