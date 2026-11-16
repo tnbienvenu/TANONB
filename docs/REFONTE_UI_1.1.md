@@ -71,3 +71,32 @@ dans « Profil » avec le même libellé ; « Historique », « Graphiques » et
 - **Recherche dans l'historique** : la fonction n'existait pas en 1.0 ; non ajoutée (filtres conservés).
 - Les graphiques sont dessinés par l'application (pas de bibliothèque tierce) : pas de zoom par pincement.
 - Captures d'écran réalisées avec des **données fictives** (profil « Démo (fictif) »), jamais enregistrées en production.
+
+## 6. Résultats des tests (version 1.1.0)
+
+Environnement : émulateur Android 14 (API 34, x86_64, **sans accélération matérielle**), écran 720 × 1760 à 280 dpi
+(proportions du Razr 50s déplié). Données **fictives** créées par les tests (profils « Démo (fictif) », « … FICTIF »).
+Assistant IA testé uniquement contre un **serveur simulé local** : aucune donnée envoyée à un fournisseur d'IA.
+Journal brut : `recette/journal_refonte_1.1.tsv` (dernière exécution de chaque scénario).
+
+| Domaine | Classes / scénarios | Résultat |
+|---|---|---|
+| Démarrage, profil | R01, R02a–j | réussis |
+| Séances (3 mesures, erreurs de saisie, incomplètes, interruption, alertes, symptômes) | R03a–f, R04a–h, R05a–d, R06, R07a–d | réussis |
+| Accueil, analyses, graphiques, rapports PDF/CSV, traitements, calendrier | R08a–c, R09a–g, R10a–c, R11a–h | réussis |
+| Assistant IA (serveur simulé, consentement, données transmises) | R12a–l | réussis |
+| Sécurité, sauvegardes chiffrées et corrompues, restauration | R13a–f, R14a–f | réussis |
+| Rappels, alarmes exactes, Reporter / Ignorer, séance manquée | R15a–g, R16p, R16a–d, R17 | réussis |
+| Ouverture de la séance depuis le bouton « Commencer » de la notification | R16e | **échec de l'automate** : la séance du matin s'est bien ouverte (capture `captures-1.1/recette/R16e_commencer_apres_180s.png`), mais après la fenêtre de 180 s du test (37 à 57 s en 1.0.2 sur le même émulateur). Délai à vérifier sur appareil réel |
+| OCR (66 images de référence) | R18 synthétique / réel | 93,3 % / 84,3 % de valeurs correctes, **0 erreur non signalée** |
+| Import d'une photo, validation, enregistrement | R19, R19b | réussis |
+| Autorisations refusées (notifications, alarmes exactes, caméra) | R20a–e | réussis |
+| Rotation, écran externe 1056 × 1066 | R21a–d | réussis |
+| Tailles 720 × 1280 et 1600 × 2560 | R21 (boucle de tailles) | **automate interrompu** (`ComposeNotIdleException` : l'émulateur logiciel met plus de 60 s à recréer l'écran) ; **vérifié manuellement** par captures après 2 min (`captures-1.1/recette/R21_hote_*.png`) ; aucun rendu continu au repos mesuré (1 image en 10 s) |
+| Refonte : accueil, moyenne de séance, TalkBack, cible ≥ 48 dp, historique groupé, filtres, 8 cartes d'analyse + IA distincte, MESURE n / 3, mode sombre, police 130 % | R22a–j | réussis |
+
+Synthèse : **123 scénarios réussis sur 124 enregistrés** par l'automate, 1 échec d'automate (R16e) dont le résultat
+fonctionnel est constaté a posteriori, et 2 contrôles de taille d'écran vérifiés manuellement.
+
+**Non exécuté** : aucun test sur un Motorola Razr 50s physique (écran externe réel, charnière, capteur d'empreinte,
+appareil photo réel en conditions de mesure, autonomie, performances réelles).
