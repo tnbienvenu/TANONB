@@ -50,7 +50,9 @@ for i, (s, d, p) in enumerate([("142", "91", "71"), ("138", "88", "69")]):
     tap("Valider et continuer")
     ok = wait(f"Mesure {i+1} enregistrée", 180)
     record(f"RL04-{i+1}", "Release – saisie de mesure", f"{s}/{d}/{p}", f"« Mesure {i+1} enregistrée »", "OK" if ok else "échec", ok)
-    if i == 0: tap_scroll("Mesurer maintenant")
+    if i == 0:
+        # « Mesurer maintenant » pendant le décompte, « Mesure suivante » une fois le décompte (60 s) écoulé.
+        tap_scroll("Mesure suivante" if find("Mesure suivante") is not None else "Mesurer maintenant")
 tap_scroll("Arrêter ici")
 ok = wait("Moyenne des 2 mesures", 120) or wait("140,0/89,5", 30)
 record("RL05", "Release – calculs", "142/91/71 et 138/88/69", "moyenne 140,0/89,5 · 70,0", "conforme" if find("140,0/89,5") is not None else "non trouvé", find("140,0/89,5") is not None)
