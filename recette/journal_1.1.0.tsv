@@ -61,3 +61,110 @@ R24a	Parcours de tous les écrans – mode clair	5 onglets + 12 écrans du Profi
 R24b	Parcours de tous les écrans – mode sombre	5 onglets + 12 écrans du Profil, données fictives	chaque écran s'ouvre (titre attendu), sans plantage, fond sombre	17 écrans conformes	RÉUSSI	R24_sombre_*.png
 R24c	Plages matin/soir – paramètres	défaut puis plage matin 14:17–16:17	valeurs initiales affichées ; chevauchement refusé ; nouvelle plage enregistrée et affichée	défaut=true, chevauchement refusé=true, enregistrée=true, affichée=true	RÉUSSI	R24_plages_defaut.png, R24_plages_modifiees.png
 R24d	Moment déduit des plages configurées	mesure à 15:17:08, matin 14:17–16:17	séance classée « matin » d'après la plage modifiée	période=MORNING	RÉUSSI	—
+R01c	Autorisation des notifications (Android 13+)	premier accès au tableau de bord	fenêtre système de demande affichée	affichée puis acceptée	RÉUSSI	ECHEC_attente_NOUVELLE SÉANCE.png (run 1)
+R01	Avertissement initial	case non cochée puis cochée	Bouton inactif sans case ; tableau de bord après acceptation	Bouton inactif puis tableau de bord affiché	RÉUSSI	R01.png
+R01b	Avertissement initial	relance de l'application	avertissement non réaffiché	tableau de bord directement	RÉUSSI	—
+R02a	Profil – champs vides	aucun champ	enregistré, objectif null	objectif=null, nom=''	RÉUSSI	—
+R02b	Profil – date invalide	31/02/1960	message « Date de naissance invalide. »	message affiché	RÉUSSI	R02b_date_invalide.png
+R02c	Profil – objectif incomplet	135 / vide	refus : deux valeurs requises	refusé	RÉUSSI	—
+R02d	Profil – objectif incohérent	135 / 140 (SYS ≤ DIA)	refus « Objectif incohérent »	refusé	RÉUSSI	—
+R02e	Profil – limite haute	999 / 85	refus (hors 90–200)	refusé	RÉUSSI	—
+R02f	Profil – caractères non numériques	« 13a5 »	lettres filtrées → 135	135	RÉUSSI	—
+R02g	Profil – valeurs normales	RECETTE-FICTIF, 15/06/1958, H, 176 cm, 78,5 kg, objectif 135/85	toutes valeurs en base	Profile(displayName=RECETTE-FICTIF, birthDate=1958-06-15, sex=MALE, heightCm=176, weightKg=78.5, target=BpTarget(systolic=135, diastolic=85), medicalHistory=Antécédent fictif de test, observations=Observation fictive)	RÉUSSI	R02g_profil_rempli.png
+R02h	Profil – persistance écran	fermer/rouvrir l'écran	valeurs réaffichées	réaffichées	RÉUSSI	—
+R02i	Profil – persistance application	relance de l'activité	valeurs réaffichées	réaffichées	RÉUSSI	R02i_profil_apres_relance.png
+R02j	Profil – modification	RECETTE-FICTIF-2, objectif 130/80	base mise à jour + objectif affiché à l'accueil	nom=RECETTE-FICTIF-2, objectif=BpTarget(systolic=130, diastolic=80), accueil=130/80 affiché	RÉUSSI	R02j.png
+R11a	Traitement – nom vide	aucun nom	bouton Enregistrer inactif	inactif	RÉUSSI	—
+R11b	Traitement – heure invalide	« 25:99 »	enregistrement bloqué tant que l'heure est invalide, message d'aide affiché	bouton inactif, message « Heure invalide… »	RÉUSSI	R11_traitement_heure_invalide.png
+R11b2	Traitement – ajout valide	MEDICAMENT-FICTIF, 08:00, 01/09/2026	traitement enregistré avec heure et date	[Treatment(id=1, name=MEDICAMENT-FICTIF, dosage=1 comprimé (fictif), usualTime=08:00, startDate=2026-09-01, endDate=null, active=true, notes=)]	RÉUSSI	—
+R11c	Traitement – persistance	fermer/rouvrir	toujours listé	listé	RÉUSSI	—
+R11d	Traitement – modification	posologie 2 cp, 08:00, 01/09/2026, arrêté	mis à jour, libellé « (arrêté) »	dosage=2 comprimés (fictif), heure=08:00, début=2026-09-01, actif=false	RÉUSSI	R11d.png
+R11e	Journal d'observations	ajout	observation listée avec la date du jour	listée	RÉUSSI	—
+R11f	Traitement – suppression	supprimer + confirmer	traitement supprimé	0 restant(s)	RÉUSSI	—
+R11g	Automesure standardisée	Commencer aujourd'hui	protocole démarré, statut « Non commencé » et boutons matin/soir	affiché	ÉCHOUÉ	R11_hbpm.png
+R09a	Graphiques – valeur exacte	toucher le centre du graphique	valeur exacte et date affichées	affichée	RÉUSSI	R09_graphique_valeur_touchee.png
+R09b	Graphiques – effectifs et manquants	période 30 j	4 séances, 12 mesures, 4 jours sur 30, 26 jours sans mesure	conforme	RÉUSSI	R09_graphique_tension.png
+R09c	Graphiques – matin/soir	jeu fictif	écart soir − matin −5,0 / −2,0 ; effectifs insuffisants signalés	conforme	RÉUSSI	R09_graphique_Matin_et_soir.png
+R09d	Graphiques – filtre période	7 jours	« 4 séance(s) … sur 7 »	filtré	RÉUSSI	—
+R09e	Analyse – moyenne 7 j	jeu fictif	constat « Moyenne 133/84 mmHg … repère élevée »	présent	RÉUSSI	R09_analyse.png
+R09f	Assistant local	question prédéfinie « moyenne 7 jours »	réponse en 6 sections, 133/84, sans connexion	6 sections=true, 133/84=true	RÉUSSI	R09_assistant_local.png
+R09g	Assistant – IA non configurée	question libre	bouton « Demander à l'IA » inactif sans fournisseur	aucun fournisseur	RÉUSSI	—
+R10a	Rapport PDF	période 7 jours, jeu fictif	fichier PDF valide de plusieurs pages	fichier=CardioSuivi_rapport_2026-11-12_2026-11-18.pdf, 113854 octets, 3 page(s)	RÉUSSI	R10_pdf_page1.png … page4
+R10b	Export CSV	période 7 jours	en-tête + 12 lignes ; ligne 150/96 (PP 54) ; valeur de séance 140,0/90,0	13 lignes	RÉUSSI	R10_export.csv
+R10c	Partage Android	bouton Partager	menu de partage du système affiché	affiché	RÉUSSI	R10_menu_partage.png
+R11a	Traitement – nom vide	aucun nom	bouton Enregistrer inactif	inactif	RÉUSSI	—
+R11b	Traitement – heure invalide	« 25:99 »	enregistrement bloqué tant que l'heure est invalide, message d'aide affiché	bouton inactif, message « Heure invalide… »	RÉUSSI	R11_traitement_heure_invalide.png
+R11b2	Traitement – ajout valide	MEDICAMENT-FICTIF, 08:00, 01/09/2026	traitement enregistré avec heure et date	[Treatment(id=1, name=MEDICAMENT-FICTIF, dosage=1 comprimé (fictif), usualTime=08:00, startDate=2026-09-01, endDate=null, active=true, notes=)]	RÉUSSI	—
+R11c	Traitement – persistance	fermer/rouvrir	toujours listé	listé	RÉUSSI	—
+R11d	Traitement – modification	posologie 2 cp, 08:00, 01/09/2026, arrêté	mis à jour, libellé « (arrêté) »	dosage=2 comprimés (fictif), heure=08:00, début=2026-09-01, actif=false	RÉUSSI	R11d.png
+R11e	Journal d'observations	ajout	observation listée avec la date du jour	listée	RÉUSSI	—
+R11f	Traitement – suppression	supprimer + confirmer	traitement supprimé	0 restant(s)	RÉUSSI	—
+R11g	Automesure standardisée	Commencer aujourd'hui	protocole démarré, statut « Non commencé », un bouton unique (moment automatique, sans choix matin/soir)	conforme	RÉUSSI	R11_hbpm.png
+R11h	Calendrier	mois courant	grille mensuelle, légende et prochaines séances (mer/jeu/ven 07:00/19:00)	affiché	RÉUSSI	R11_calendrier.png
+R09a	Graphiques – valeur exacte	toucher le centre du graphique	valeur exacte et date affichées	affichée	RÉUSSI	R09_graphique_valeur_touchee.png
+R09b	Graphiques – effectifs et manquants	période 30 j	4 séances, 12 mesures, 4 jours sur 30, 26 jours sans mesure	conforme	RÉUSSI	R09_graphique_tension.png
+R09c	Graphiques – matin/soir	jeu fictif	écart soir − matin −5,0 / −2,0 ; effectifs insuffisants signalés	conforme	RÉUSSI	R09_graphique_Matin_et_soir.png
+R09d	Graphiques – filtre période	7 jours	« 4 séance(s) … sur 7 »	filtré	RÉUSSI	—
+R09e	Analyse – moyenne 7 j	jeu fictif	constat « Moyenne 133/84 mmHg … repère élevée »	présent	RÉUSSI	R09_analyse.png
+R09f	Assistant local	question prédéfinie « moyenne 7 jours »	réponse en 6 sections, 133/84, sans connexion	6 sections=true, 133/84=true	RÉUSSI	R09_assistant_local.png
+R09g	Assistant – IA non configurée	question libre	bouton « Demander à l'IA » inactif sans fournisseur	aucun fournisseur	RÉUSSI	—
+R10a	Rapport PDF	période 7 jours, jeu fictif	fichier PDF valide de plusieurs pages	fichier=CardioSuivi_rapport_2026-11-12_2026-11-18.pdf, 113852 octets, 3 page(s)	RÉUSSI	R10_pdf_page1.png … page4
+R10b	Export CSV	période 7 jours	en-tête + 12 lignes ; ligne 150/96 (PP 54) ; valeur de séance 140,0/90,0	13 lignes	RÉUSSI	R10_export.csv
+R10c	Partage Android	bouton Partager	menu de partage du système affiché	affiché	RÉUSSI	R10_menu_partage.png
+R08a	Tableau de bord – moyenne 7 j	jeu fictif 4 séances	« 133/84 mmHg » ; 4 séance(s), 4 jour(s)	133/84 absent ; effectifs KO	ÉCHOUÉ	R08_tableau_de_bord_jeu_fictif.png
+R12a	IA – clé invalide	« clé avec accent »	clé refusée (caractères non autorisés)	refusée	RÉUSSI	—
+R12b	IA – stockage de la clé	sk-ant-TEST-FICTIVE-0000	clé chiffrée (absente en clair du fichier de préférences), relisible par l'application	relue=true, en clair dans le fichier=false	RÉUSSI	R12_cle_enregistree.png
+R12c	IA – test de connexion	serveur simulé répond « OK »	« Connexion réussie » ; requête sans aucune donnée de santé ; en-têtes x-api-key et anthropic-version	statut=réussie ; corps={"model":"claude-opus-5-5","max_tokens":16000,"system":"Réponds uniquement par le mot OK.","messages":[{"role":"user","content":"Test de connexion."}],"output_c ; version=2026-10-21	RÉUSSI	R12_test_connexion.png
+R12d	IA – consentement	première question	dialogue de consentement AVANT tout envoi ; aucune requête	dialogue affiché, requêtes=0	RÉUSSI	R12_consentement.png
+R12e	IA – refus du consentement	Refuser	aucune requête envoyée	requêtes envoyées=0	RÉUSSI	—
+R12f	IA – question avec consentement	« Comment ma tension évolue-t-elle ? »	réponse affichée ; requête contenant statistiques et question, SANS nom ni date de naissance	réponse=true ; nom absent=true ; naissance absente=true ; âge=true ; question=true	RÉUSSI	R12_reponse_ia.png
+R12g	IA – garde-fou prescription	« Dois-je augmenter mon traitement ? »	refus local, aucune requête envoyée	refus affiché, requêtes supplémentaires=0	RÉUSSI	R12_garde_fou.png
+R12h	IA – erreur d'authentification	réponse HTTP 401 simulée	message « Clé d'API invalide » lisible, pas de plantage	affiché	RÉUSSI	R12_erreur_401.png
+R12i	IA – refus du modèle	stop_reason=refusal simulé	message explicite, pas de contenu vide	affiché	RÉUSSI	—
+R12j	IA – pas de connexion	service injoignable	« Connexion au service impossible », l'analyse locale reste disponible	affiché	RÉUSSI	R12_hors_connexion.png
+R12k	Hors connexion – analyse locale	question prédéfinie	réponse locale disponible sans réseau	affichée	RÉUSSI	—
+R12l	IA – retrait du consentement	consentement retiré puis question	consentement redemandé, aucune requête	dialogue réaffiché, requêtes=0	RÉUSSI	—
+R08a	Tableau de bord – moyenne 7 j	jeu fictif 4 séances	« 133/84 mmHg » ; 4 séance(s), 4 jour(s)	133/84 affiché ; effectifs OK	RÉUSSI	R08_tableau_de_bord_jeu_fictif.png
+R08b	Paramètre méthode de calcul	« Moyenne des deux dernières mesures »	moyenne 7 j recalculée « 131/83 mmHg »	131/83	RÉUSSI	R08_methode_deux_dernieres.png
+R08c	Paramètre méthode – persistance	relance	méthode conservée (131/83)	conservée	RÉUSSI	—
+R13a	Écran protégé (défaut)	réglage par défaut	FLAG_SECURE actif (captures bloquées)	FLAG_SECURE=true	RÉUSSI	capture noire R000 (image ATD) / fenêtre
+R13b	Écran protégé – désactivation	interrupteur	FLAG_SECURE retiré	FLAG_SECURE=false	RÉUSSI	—
+R13c	Numéro d'urgence	« 15a# »	caractères invalides filtrés, « 15 » enregistré	affiché=true, enregistré=15	RÉUSSI	R13_parametres.png
+R13d	Numéro d'urgence vide	champ vidé	retour à 112 (jamais de numéro vide)	enregistré=112	RÉUSSI	—
+R13e	Paramètres – persistance	relance	écran protégé désactivé et 112 conservés	FLAG_SECURE=false	RÉUSSI	—
+R13f	Biométrie – non configurée sur l'appareil	activer le verrouillage sans empreinte ni code	message explicatif, verrouillage NON activé	message=true, activé=false	RÉUSSI	R13_biometrie_indisponible.png
+R14a	Sauvegarde chiffrée	mot de passe « MotDePasseFictif1 »	fichier créé, contenu illisible en clair	1683 octets, contient « RECETTE » en clair=false	RÉUSSI	—
+R14b1	Sauvegarde corrompue	mauvais mot de passe	refus avec message « …Mot de passe incorrect… », aucune donnée modifiée	refusée : Mot de passe incorrect ou fichier altéré.	RÉUSSI	—
+R14b2	Sauvegarde corrompue	fichier tronqué (moitié)	refus avec message « …incorrect ou fichier altéré… », aucune donnée modifiée	refusée : Mot de passe incorrect ou fichier altéré.	RÉUSSI	—
+R14b3	Sauvegarde corrompue	un octet modifié	refus avec message « …altéré… », aucune donnée modifiée	refusée : Mot de passe incorrect ou fichier altéré.	RÉUSSI	—
+R14b4	Sauvegarde corrompue	fichier vide	refus avec message « …invalide ou tronqué… », aucune donnée modifiée	refusée : Fichier de sauvegarde invalide ou tronqué.	RÉUSSI	—
+R14b5	Sauvegarde corrompue	autre fichier (texte)	refus avec message « …pas une sauvegarde… », aucune donnée modifiée	refusée : Ce fichier n'est pas une sauvegarde CardioSuivi.	RÉUSSI	—
+R14b6	Sauvegarde corrompue	en-tête modifié	refus avec message « …altéré… », aucune donnée modifiée	refusée : Mot de passe incorrect ou fichier altéré.	RÉUSSI	—
+R14c	Restauration	bonne sauvegarde après suppression des données	1 séance (125/126/127) et profil restaurés	1 séance(s), [125, 126, 127], profil=RECETTE-FICTIF	RÉUSSI	—
+R14d	Sauvegarde – confirmation	mots de passe différents	bouton de sauvegarde inactif	inactif	RÉUSSI	R14_mots_de_passe_differents.png
+R14e	Sauvegarde – mot de passe court	« court » (5 caractères)	bouton inactif (minimum 8)	inactif	RÉUSSI	—
+R16p	Alarmes exactes non autorisées (Android 14, défaut)	installation neuve	alerte sur l'accueil + bouton vers « Alarmes et rappels »	canScheduleExact=true, alerte=false	RÉUSSI	R16_alerte_heure_exacte.png
+R16a	Alarme exacte	autorisation accordée, rappel à 19:08	alarme exacte programmée	canScheduleExact=true	RÉUSSI	R15_dumpsys_alarm.txt
+R16b	Notification de rappel	attente du déclenchement (~2 min)	notification « Séance de tension du matin » avec Commencer / Reporter… / Ignorer	reçue à 19:08:16	RÉUSSI	R16_notification.png
+R16c	Reporter	Reporter… → Dans 10 minutes	notification retirée, nouvelle alarme ~10 min plus tard	dialogue=true, alarmes=2	RÉUSSI	R16_report_dialogue.png
+R16d	Ignorer	bouton Ignorer	notification retirée, événement IGNORED journalisé	retirée=true, événements=[IGNORED, SNOOZED_10]	RÉUSSI	—
+R16e	Commencer depuis la notification	bouton Commencer	ouverture directe de la séance du matin	non détectée en 180 s	ÉCHOUÉ	R16_commencer.png, R16_commencer_hierarchie.xml
+R17	Détection de séance manquée	créneau d'hier 19:00 sans séance (WorkManager)	notification « Séance non réalisée »	reçue	RÉUSSI	R17_seance_manquee.png
+R15a	Rappels – valeurs initiales	aucune modification	mer/jeu/ven, 07:00 et 19:00	07:00 / 19:00	RÉUSSI	R15_ecran_rappels.png
+R15b	Rappels – alarmes système	réglages par défaut	2 alarmes programmées (matin et soir) dans AlarmManager	2 alarme(s) RTC_WAKEUP de l'application	RÉUSSI	R15_dumpsys_alarm.txt
+R15c	Rappels – jours	ajout du lundi	lundi enregistré	[MONDAY, WEDNESDAY, THURSDAY, FRIDAY]	RÉUSSI	—
+R15d	Rappels – désactivation du soir	interrupteur soir	soir désactivé	eveningEnabled=false	RÉUSSI	—
+R15e	Protocole de séance	90 s, 2 mesures	intervalle 90 s et 2 mesures enregistrés	interval=90, mesures=2	RÉUSSI	—
+R15f	Sélecteur d'heure	ouvrir / annuler	dialogue d'heure 24 h affiché puis fermé sans modification	heure matin=07:00	RÉUSSI	R15_selecteur_heure.png
+R15g	Rappels – persistance	relance	90 s et 2 mesures conservés	conservés	RÉUSSI	—
+R14a	Sauvegarde chiffrée	mot de passe « MotDePasseFictif1 »	fichier créé, contenu illisible en clair	1683 octets, contient « RECETTE » en clair=false	RÉUSSI	—
+R14b1	Sauvegarde corrompue	mauvais mot de passe	refus avec message « …Mot de passe incorrect… », aucune donnée modifiée	refusée : Mot de passe incorrect ou fichier altéré.	RÉUSSI	—
+R14b2	Sauvegarde corrompue	fichier tronqué (moitié)	refus avec message « …incorrect ou fichier altéré… », aucune donnée modifiée	refusée : Mot de passe incorrect ou fichier altéré.	RÉUSSI	—
+R14b3	Sauvegarde corrompue	un octet modifié	refus avec message « …altéré… », aucune donnée modifiée	refusée : Mot de passe incorrect ou fichier altéré.	RÉUSSI	—
+R14b4	Sauvegarde corrompue	fichier vide	refus avec message « …invalide ou tronqué… », aucune donnée modifiée	refusée : Fichier de sauvegarde invalide ou tronqué.	RÉUSSI	—
+R14b5	Sauvegarde corrompue	autre fichier (texte)	refus avec message « …pas une sauvegarde… », aucune donnée modifiée	refusée : Ce fichier n'est pas une sauvegarde CardioSuivi.	RÉUSSI	—
+R14b6	Sauvegarde corrompue	en-tête modifié	refus avec message « …altéré… », aucune donnée modifiée	refusée : Mot de passe incorrect ou fichier altéré.	RÉUSSI	—
+R14c	Restauration	bonne sauvegarde après suppression des données	1 séance (125/126/127) et profil restaurés	1 séance(s), [125, 126, 127], profil=RECETTE-FICTIF	RÉUSSI	—
+R14d	Sauvegarde – confirmation	mots de passe différents	bouton de sauvegarde inactif	inactif	RÉUSSI	R14_mots_de_passe_differents.png
+R14e	Sauvegarde – mot de passe court	« court » (5 caractères)	bouton inactif (minimum 8)	inactif	RÉUSSI	—
+R14f	Suppression de toutes les données	double confirmation	données effacées, application relancée sans plantage, avertissement initial réaffiché	effacées=true, avertissement=true	RÉUSSI	R14_apres_suppression.png
