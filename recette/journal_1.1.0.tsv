@@ -1,0 +1,63 @@
+R07a	Alerte immédiate	186/112	« Contacter rapidement un professionnel » + repos 5 min et nouvelle mesure	alerte affichée pendant l'intervalle	RÉUSSI	R07_alerte_valeur_tres_elevee.png
+R07b	Alerte urgente – symptôme	symptôme « douleur thoracique » coché (avant enregistrement)	carte d'urgence immédiate avec bouton d'appel (112)	carte affichée immédiatement	RÉUSSI	R07_urgence_symptome.png
+R07c	Appel des secours	bouton « Appeler les secours »	ouverture du composeur avec le numéro (sans appel automatique)	application au premier plan : com.google.android.dialer	RÉUSSI	—
+R07d	Alerte de séance	séance 186/112 + douleur thoracique	« Recommandation urgente » à l'enregistrement	affichée	RÉUSSI	R07_seance_urgente_enregistree.png
+R05a	Interruption de séance	2 mesures puis retour → reprendre plus tard	accueil : carte « Séance en cours » 2/3	carte affichée 2/3	RÉUSSI	R05_seance_en_cours_accueil.png
+R05b	Interruption – relance	relance de l'activité	séance en cours toujours proposée	perdue	ÉCHOUÉ	—
+R03a	Séance – intervalle	mesure 1 validée	écran d'intervalle avec décompte (60 s)	écran « Avant la mesure 2 » affiché	RÉUSSI	R03_intervalle.png
+R03b	Séance – calculs du résumé	148/94/76 ; 140/90/74 ; 136/88/72	141,3/90,7·74,0 ; 138,0/89,0·73,0 ; 136–148 (12) ; 88–94 (6) ; SD 6,1/3,1 ; −8 puis −4 ; −4 puis −2 ; PP 51	moyenne 3=OK, moyenne 2 dernières=OK, valeur séance 141=OK, amplitude SYS=OK, amplitude DIA=OK, écart-type=OK, évolution SYS=OK, évolution DIA=OK, pression pulsée=OK	RÉUSSI	R03_resume_calculs.png
+R03c	Séance – alerte de fin	moyenne 141/91, sans objectif	alerte « Au-dessus du seuil de référence à domicile » (135/85)	alerte affichée	RÉUSSI	R03_seance_enregistree.png
+R03d	Séance – enregistrement	validation	1 séance « Terminée », 3 mesures 148/140/136, heures réelles croissantes	1 séance(s), statut COMPLETED, mesures [148/94@2026-11-18T12:58:54.439Z, 140/90@2026-11-18T13:00:14.654Z, 136/88@2026-11-18T13:01:13.627Z]	RÉUSSI	R03d.png
+R03e	Tableau de bord	après séance	dernière mesure 136/88 et moyenne de séance 141/91 affichées	affichées	RÉUSSI	R03_tableau_de_bord_apres.png
+R03f	Historique	1 séance	ligne 141/91 mmHg et détail des 3 mesures	conforme	RÉUSSI	R03_historique.png
+R06	Séance incomplète	132/84/70 puis 128/82/68, arrêt	statut « Incomplète », valeur 130/83	statut INCOMPLETE, 2 mesures	RÉUSSI	R06_resume_incomplet.png
+R04a	Saisie – SYS, DIA et PUL vides	validation sans valeur	3 messages « … est obligatoire », rien enregistré	3 messages affichés	RÉUSSI	R04_champs_vides.png
+R04b	Saisie – caractères non numériques	« 8x0 », « 7a2 »	seuls les chiffres sont acceptés → 80 et 72	filtrés	RÉUSSI	—
+R04c	Saisie – SYS ≤ DIA refusée	80 / 120 / 72	refus avec message sous le champ, valeurs saisies conservées, rien enregistré	message=true, valeurs conservées=true	RÉUSSI	R04_inversion.png
+R04d	Saisie – hors bornes de plausibilité (inchangées)	300 / 20 / 250	dialogue de vérification listant les valeurs inhabituelles	affiché	RÉUSSI	R04_hors_bornes.png
+R04e	Saisie – longueur	« 1234 »	saisie limitée à 3 chiffres (123)	123	RÉUSSI	—
+R04f	Saisie – PUL obligatoire	128 / 82 / (vide)	refus « PUL est obligatoire », rien enregistré	refusé	RÉUSSI	R04_pouls_obligatoire.png
+R04g	Séance en cours non comptée	1 mesure 128/82/72 validée	mesure enregistrée, séance au statut « En cours »	128/82/72, statut IN_PROGRESS	RÉUSSI	—
+R04h	Saisie – valeur hors bornes confirmée	265/100/80 confirmée	enregistrée après confirmation explicite	mesure 2 enregistrée	RÉUSSI	—
+R21a	Rotation – formulaire non enregistré	saisie « ROTATION-FICTIF » puis rotation	saisie conservée	conservée	RÉUSSI	R21_profil_paysage.png
+R21b	Rotation – séance en cours	valeurs saisies 133/86 puis rotation	étape et valeurs conservées	conservées	RÉUSSI	R21_seance_paysage.png
+R23k	Changement de fuseau horaire	mesure à 13:26:02 (Etc/UTC) puis téléphone en Asia/Tokyo	heure affichée dans le fuseau d'enregistrement (13:26:02), donnée inchangée	affichée=true, zoneId=Etc/UTC, measuredAt inchangé=true	RÉUSSI	R23_fuseau_detail.png
+R23a	Préparation – aucun choix de bras ni de période	écran de préparation	pas de sélection Bras gauche/droit ni Matin/Soir/Autre	aucun sélecteur	RÉUSSI	R23_preparation.png
+R23b	Formulaire – trois champs, aucun OCR	mesure 1	SYS, DIA, PUL avec unités ; pas de photo/import ; pas de champ date/heure	champs=false, OCR absent=true	ÉCHOUÉ	R23_formulaire.png
+R05a	Interruption de séance	2 mesures puis retour → reprendre plus tard	accueil : carte « Séance en cours » 2/3	carte affichée 2/3	RÉUSSI	R05_seance_en_cours_accueil.png
+R05b	Interruption – relance	relance de l'activité	séance en cours toujours proposée	proposée	RÉUSSI	—
+R05c	Reprise de séance	Reprendre	reprise à la mesure 3	mesure 3	RÉUSSI	—
+R05d	Dialogue de sortie – Continuer	retour puis « Continuer »	reste dans la séance	reste	RÉUSSI	—
+R20a	Notifications refusées	autorisation refusée	avertissement sur l'accueil « Les notifications sont bloquées »	affiché	RÉUSSI	R20_notifications_refusees.png
+R20b	Diagnostic des autorisations	notifications et alarmes exactes refusées	deux lignes en erreur avec boutons de réglage	conforme	RÉUSSI	R20_diagnostic.png
+R20c	Alarmes exactes refusées	appops SCHEDULE_EXACT_ALARM deny	repli sur alarme approchée (pas de plantage)	canScheduleExact=false	RÉUSSI	—
+R20d	Caméra supprimée (1.1.0)	permissions déclarées par l'application	aucune autorisation CAMERA demandée	CAMERA absente ; déclarées : POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM, RECEIVE_BOOT_COMPLETED, VIBRATE, INTERNET, USE_BIOMETRIC, USE_FINGERPRINT, WAKE_LOCK, ACCESS_NETWORK_STATE, FOREGROUND_SERVICE, DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION	RÉUSSI	—
+R20e	Saisie sans caméra ni OCR	Commencer une séance	formulaire SYS/DIA/PUL affiché directement, sans demande d'autorisation ni bouton photo/import	dialogue=false, photo=false	RÉUSSI	R20_saisie_sans_camera.png
+R21a	Rotation – formulaire non enregistré	saisie « ROTATION-FICTIF » puis rotation	saisie conservée	conservée	RÉUSSI	R21_profil_paysage.png
+R21b	Rotation – séance en cours	valeurs saisies 133/86 puis rotation	étape et valeurs conservées	conservées	RÉUSSI	R21_seance_paysage.png
+R21c	Pliable – passage à l'écran externe pendant la saisie	wm size 1056×1066, 360 dpi	valeurs conservées, interface utilisable	perdues	ÉCHOUÉ	R21_ecran_externe_pendant_seance.png
+R23k	Changement de fuseau horaire	mesure à 14:26:12 (Etc/UTC) puis téléphone en Asia/Tokyo	heure affichée dans le fuseau d'enregistrement (14:26:12), donnée inchangée	affichée=true, zoneId=Etc/UTC, measuredAt inchangé=true	RÉUSSI	R23_fuseau_detail.png
+R23a	Préparation – aucun choix de bras ni de période	écran de préparation	pas de sélection Bras gauche/droit ni Matin/Soir/Autre	aucun sélecteur	RÉUSSI	R23_preparation.png
+R23b	Formulaire – trois champs, aucun OCR	mesure 1	SYS, DIA, PUL avec unités ; pas de photo/import ; pas de champ date/heure	champs=true, OCR absent=true	RÉUSSI	R23_formulaire.png
+R23c	Horodatage automatique	validation de la mesure 1 entre 2026-11-18T14:30:20.029612Z et 2026-11-18T14:31:27.304571Z	heure du téléphone à la validation (ms), fuseau Etc/UTC, décalage UTC, sans date de correction	measuredAt=2026-11-18T14:31:13.217Z, zoneId=Etc/UTC, offset=0	RÉUSSI	—
+R23d	Bras gauche et période automatiques	nouvelle séance	bras = gauche ; période = plage contenant 14:31:13 (OTHER)	bras=LEFT, période=OTHER	RÉUSSI	—
+R23e	Retour à la mesure précédente et correction	mesure 2 → « Revenir à la mesure 1 », SYS 131 → 130	valeur corrigée, horodatage d'origine inchangé, date de correction distincte, retour à la saisie de la mesure 2	sys=130, measuredAt=2026-11-18T14:31:13.217Z (orig. 2026-11-18T14:31:13.217Z), modifiedAt=2026-11-18T14:32:04.848Z	RÉUSSI	R23_retour_mesure_1.png
+R23f	Récapitulatif – heures de chaque mesure	3 mesures	3 horodatages distincts et croissants, affichés à la seconde (HH:mm:ss)	distincts=true, affichés=true : 14:31:13, 14:33:09, 14:34:22	RÉUSSI	R23_recapitulatif.png
+R23g	Récapitulatif – moyennes	130/84/74, 129/83/72, 128/82/72	moyenne des 3 : 129,0/83,0 · 72,7	conforme	RÉUSSI	R23_recapitulatif.png
+R23h	Correction avant clôture	mesure 3 : PUL 72 → 71	valeur corrigée, horodatage inchangé, retour au récapitulatif	pul=71, measuredAt inchangé=true	RÉUSSI	—
+R23i	Horodatage – fermeture puis consultation	relance de l'application, ouverture du détail	horodatages et dates de correction identiques ; bras gauche mentionné discrètement	identiques=true, affichés=true	RÉUSSI	R23_detail.png
+R23j	Confirmation avant abandon	valeur saisie puis retour	dialogue de confirmation signalant la perte des valeurs ; après « Abandonner », rien n'est enregistré	avertissement=true, séances=1	RÉUSSI	R23_abandon.png
+R22a	Accueil – dernière tension	séance fictive 131/84/74, 129/83/72, 128/82/72	en-tête « Bonjour », dernière mesure 128 / 82 / 72 en grand	affichée	RÉUSSI	UI_01_accueil_haut.png
+R22b	Accueil – moyenne de séance	(131+129+128)/3 = 129,3 ; (84+83+82)/3 = 83	« Moyenne de référence de la séance : 129/83 mmHg »	conforme	RÉUSSI	UI_01_accueil_haut.png
+R22c	Accessibilité – valeurs lues par TalkBack	bloc systolique	description « Systolique : 128 mmHg » (libellé + valeur + unité)	présente	RÉUSSI	—
+R22d	Accessibilité – cible tactile	bouton « Commencer une séance »	hauteur ≥ 48 dp	≥ 48 dp	RÉUSSI	UI_03_accueil_prochaine_seance.png
+R22e	Mesures – historique groupé par date	14 séances fictives	séances groupées par jour, valeur 129/83 et badge « Complète »	conforme	RÉUSSI	UI_05_mesures.png
+R22f	Tendances – filtres de période	contrôle segmenté	7 jours | 30 jours | 90 jours | 1 an | Tout	présents	RÉUSSI	UI_07_tendances.png
+R22g	Analyse IA – 9 cartes + IA séparée	jeu fictif	9 cartes calculées localement (badge « Calcul local ») et carte IA distincte	cartes=true, badges=true	RÉUSSI	UI_10_analyse.png
+R22h	Séance guidée – progression	mesure 1 validée	indicateur « MESURE 2 SUR 3 » et chronomètre circulaire	affiché	RÉUSSI	UI_17_seance_chronometre.png
+R22i	Mode sombre	cmd uimode night yes	fond sombre (luminance < 40) et textes lisibles	luminance du fond 0	RÉUSSI	UI_19_accueil_sombre.png
+R22j	Taille de police 130 %	font_scale 1.3	valeurs et bouton principal toujours affichés	affichés	RÉUSSI	UI_23_accueil_police_130.png
+R24a	Parcours de tous les écrans – mode clair	5 onglets + 12 écrans du Profil, données fictives	chaque écran s'ouvre (titre attendu), sans plantage, fond clair	17 écrans conformes	RÉUSSI	R24_clair_*.png
+R24b	Parcours de tous les écrans – mode sombre	5 onglets + 12 écrans du Profil, données fictives	chaque écran s'ouvre (titre attendu), sans plantage, fond sombre	17 écrans conformes	RÉUSSI	R24_sombre_*.png
+R24c	Plages matin/soir – paramètres	défaut puis plage matin 14:17–16:17	valeurs initiales affichées ; chevauchement refusé ; nouvelle plage enregistrée et affichée	défaut=true, chevauchement refusé=true, enregistrée=true, affichée=true	RÉUSSI	R24_plages_defaut.png, R24_plages_modifiees.png
+R24d	Moment déduit des plages configurées	mesure à 15:17:08, matin 14:17–16:17	séance classée « matin » d'après la plage modifiée	période=MORNING	RÉUSSI	—

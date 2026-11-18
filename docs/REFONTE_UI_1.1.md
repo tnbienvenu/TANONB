@@ -87,12 +87,12 @@ Journal brut : `recette/journal_refonte_1.1.tsv` (dernière exécution de chaque
 | Assistant IA (serveur simulé, consentement, données transmises) | R12a–l | réussis |
 | Sécurité, sauvegardes chiffrées et corrompues, restauration | R13a–f, R14a–f | réussis |
 | Rappels, alarmes exactes, Reporter / Ignorer, séance manquée | R15a–g, R16p, R16a–d, R17 | réussis |
-| Ouverture de la séance depuis le bouton « Commencer » de la notification | R16e | **échec de l'automate** : la séance du matin s'est bien ouverte (capture `captures-1.1/recette/R16e_commencer_apres_180s.png`), mais après la fenêtre de 180 s du test (37 à 57 s en 1.0.2 sur le même émulateur). Délai à vérifier sur appareil réel |
+| Ouverture de la séance depuis le bouton « Commencer » de la notification | R16e | **échec de l'automate** : la séance du matin s'est bien ouverte (capture `captures-1.1.0/preuves_campagne_ui/R16e_commencer_apres_180s.png`), mais après la fenêtre de 180 s du test (37 à 57 s en 1.0.2 sur le même émulateur). Délai à vérifier sur appareil réel |
 | OCR (66 images de référence) | R18 synthétique / réel | 93,3 % / 84,3 % de valeurs correctes, **0 erreur non signalée** |
 | Import d'une photo, validation, enregistrement | R19, R19b | réussis |
 | Autorisations refusées (notifications, alarmes exactes, caméra) | R20a–e | réussis |
 | Rotation, écran externe 1056 × 1066 | R21a–d | réussis |
-| Tailles 720 × 1280 et 1600 × 2560 | R21 (boucle de tailles) | **automate interrompu** (`ComposeNotIdleException` : l'émulateur logiciel met plus de 60 s à recréer l'écran) ; **vérifié manuellement** par captures après 2 min (`captures-1.1/recette/R21_hote_*.png`) ; aucun rendu continu au repos mesuré (1 image en 10 s) |
+| Tailles 720 × 1280 et 1600 × 2560 | R21 (boucle de tailles) | **automate interrompu** (`ComposeNotIdleException` : l'émulateur logiciel met plus de 60 s à recréer l'écran) ; **vérifié manuellement** par captures après 2 min (`captures-1.1.0/preuves_campagne_ui/R21_hote_*.png`) ; aucun rendu continu au repos mesuré (1 image en 10 s) |
 | Refonte : accueil, moyenne de séance, TalkBack, cible ≥ 48 dp, historique groupé, filtres, 8 cartes d'analyse + IA distincte, MESURE n / 3, mode sombre, police 130 % | R22a–j | réussis |
 
 Synthèse : **123 scénarios réussis sur 124 enregistrés** par l'automate, 1 échec d'automate (R16e) dont le résultat
