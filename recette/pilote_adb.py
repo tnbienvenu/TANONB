@@ -45,9 +45,9 @@ def center(n):
 
 
 def dismiss_anr():
-    n = find("isn't responding")
+    n = find("isn't responding") or find("ne répond pas")
     if n is not None:
-        w = find("Wait", exact=True)
+        w = find("Wait", exact=True) or find("Attendre", exact=True)
         if w is not None:
             sh("input", "tap", *map(str, center(w)))
             time.sleep(2)
