@@ -260,7 +260,7 @@ private fun EntryInput(field: EntryField, value: String, error: String?, color: 
         OutlinedTextField(
             value = value,
             onValueChange = onChange,
-            label = { Text("${field.short} — ${field.label} *") },
+            label = { Text("${field.short} — ${field.label} (${field.unit}) *") },
             singleLine = true,
             isError = error != null,
             suffix = { Text(field.unit, color = MaterialTheme.colorScheme.onSurfaceVariant) },

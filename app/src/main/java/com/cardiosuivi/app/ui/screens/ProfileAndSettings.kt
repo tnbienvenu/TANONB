@@ -99,7 +99,7 @@ fun ProfileScreen(vm: AppViewModel, onBack: () -> Unit) {
             ChoiceChips(Sex.entries.toList(), sex, { it.label }) { sex = it }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 NumberField("Taille", height, { height = it }, Modifier.weight(1f), unit = "cm")
-                OutlinedTextField(weight, { weight = it.filter { c -> c.isDigit() || c == ',' || c == '.' }.take(5) }, label = { Text("Poids") }, suffix = { Text("kg") }, singleLine = true,
+                OutlinedTextField(weight, { weight = it.filter { c -> c.isDigit() || c == ',' || c == '.' }.take(5) }, label = { Text("Poids (kg)") }, suffix = { Text("kg") }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f))
             }
         }

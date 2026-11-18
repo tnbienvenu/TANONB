@@ -454,7 +454,8 @@ fun NumberField(
     OutlinedTextField(
         value = value,
         onValueChange = { v -> onChange(v.filter { it.isDigit() }.take(maxLength)) },
-        label = { Text(label) },
+        // L'unité figure aussi dans le libellé : le suffixe Material n'est visible que champ actif ou rempli.
+        label = { Text(withUnit(label, unit)) },
         singleLine = true,
         isError = isError,
         suffix = unit?.let { { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) } },
@@ -464,6 +465,12 @@ fun NumberField(
         textStyle = NumberStyles.small,
         modifier = modifier,
     )
+}
+
+/** « Systolique * » + « mmHg » → « Systolique (mmHg) * ». */
+fun withUnit(label: String, unit: String?): String {
+    if (unit == null || label.contains("($unit)")) return label
+    return if (label.endsWith(" *")) label.removeSuffix(" *") + " ($unit) *" else "$label ($unit)"
 }
 
 @Composable
