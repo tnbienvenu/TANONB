@@ -217,8 +217,10 @@ class R08_DonneesAnalyseRapportsTest : RecetteBase() {
         click("Commencer aujourd'hui")
         waitText("Début")
         shot("R11_hbpm")
-        record("R11g", "Automesure standardisée", "Commencer aujourd'hui", "protocole démarré, statut « Non commencé » et boutons matin/soir", "affiché",
-            exists("Non commencé") && exists("Séance du matin"), "R11_hbpm.png")
+        // 1.1.0 : un seul bouton, le moment (matin/soir) est déduit automatiquement de l'heure de la mesure.
+        val hbpm = exists("Non commencé") && exists("Commencer une séance d'automesure") && !exists("Séance du matin") && !exists("Séance du soir")
+        record("R11g", "Automesure standardisée", "Commencer aujourd'hui", "protocole démarré, statut « Non commencé », un bouton unique (moment automatique, sans choix matin/soir)",
+            if (hbpm) "conforme" else "non conforme", hbpm, "R11_hbpm.png")
         back(); click("Calendrier des séances")
         waitText("Prochaines séances")
         shot("R11_calendrier")
