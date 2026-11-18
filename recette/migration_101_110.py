@@ -38,13 +38,20 @@ def version():
     return m.group(1) if m else "?"
 
 
-subprocess.run(ADB + ["uninstall", PKG], capture_output=True)
+import os
 subprocess.run(ADB + ["logcat", "-b", "crash", "-c"], capture_output=True)
-r = subprocess.run(ADB + ["install", APK_OLD], capture_output=True, text=True)
-record("MG00", "Installation 1.0.1", APK_OLD.split("/")[-1], "installation de la 1.0.1", f"{r.stdout.strip()[-20:]} version {version()}", "Success" in r.stdout and version() == "1.0.1")
+if os.environ.get("MG_REUSE_OLD") == "1" and version() == "1.0.1":
+    record("MG00", "Installation 1.0.1", APK_OLD.split("/")[-1], "installation de la 1.0.1 (neuve)", f"déjà installée, données vierges, version {version()}", True)
+else:
+    subprocess.run(ADB + ["uninstall", PKG], capture_output=True)
+    r = subprocess.run(ADB + ["install", APK_OLD], capture_output=True, text=True)
+    record("MG00", "Installation 1.0.1", APK_OLD.split("/")[-1], "installation de la 1.0.1", f"{r.stdout.strip()[-20:]} version {version()}", "Success" in r.stdout and version() == "1.0.1")
 sh("pm", "grant", PKG, "android.permission.POST_NOTIFICATIONS")
 sh("am", "start", "-n", f"{PKG}/.MainActivity")
 wait("Bienvenue dans CardioSuivi", 240)
+# Premier démarrage de la 1.0.1 (ML Kit, base, rappels) très lent sur l'émulateur logiciel : on laisse l'application
+# terminer son initialisation avant toute interaction (deux ANR observés en interagissant dès l'affichage).
+time.sleep(60)
 for _ in range(3):
     if find("J'ai compris") is None: scroll_down()
 tap("J'ai compris")
