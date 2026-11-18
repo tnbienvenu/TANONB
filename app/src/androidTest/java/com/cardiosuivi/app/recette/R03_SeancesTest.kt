@@ -169,6 +169,8 @@ class R03_SeancesTest : RecetteBase() {
             if (exists("2/3 mesure(s)")) "carte affichée 2/3" else "absente", exists("2/3 mesure(s)"), "R05_seance_en_cours_accueil.png")
         // Relance complète de l'activité (simule la fermeture de l'application)
         relaunch()
+        // La carte dépend d'une lecture asynchrone de la base : on lui laisse le temps de s'afficher.
+        runCatching { waitText("Séance en cours", timeout = 30_000) }
         record("R05b", "Interruption – relance", "relance de l'activité", "séance en cours toujours proposée", if (exists("Séance en cours")) "proposée" else "perdue", exists("Séance en cours"), "—")
         click("Reprendre")
         waitText("SYS — Pression systolique", "Résumé de la séance", timeout = 90_000)
