@@ -56,6 +56,8 @@ class R08_DonneesAnalyseRapportsTest : RecetteBase() {
     fun r08_tableau_de_bord_et_methode_de_calcul() {
         resetApp(); seed(); launch()
         waitText("Moyenne 7 jours")
+        // Les séances sont lues de façon asynchrone : on attend la valeur calculée (au plus 60 s) avant de conclure.
+        runCatching { waitText("Moyenne 7 jours : 133/84", timeout = 60_000) }
         shot("R08_tableau_de_bord_jeu_fictif")
         record("R08a", "Tableau de bord – moyenne 7 j", "jeu fictif 4 séances", "« 133/84 mmHg » ; 4 séance(s), 4 jour(s)",
             "133/84 ${if (exists("133/84 mmHg")) "affiché" else "absent"} ; ${if (exists("4 séance(s), 4 jour(s)")) "effectifs OK" else "effectifs KO"}",
