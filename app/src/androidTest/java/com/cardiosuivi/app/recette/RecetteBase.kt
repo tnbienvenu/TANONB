@@ -208,6 +208,13 @@ abstract class RecetteBase {
 
     // ---------- Preuves ----------
 
+    /** Capture sans synchronisation Compose (pendant une recréation d'activité lente). */
+    fun rawShot(name: String) {
+        Thread.sleep(400)
+        val bmp: Bitmap = instr.uiAutomation.takeScreenshot() ?: return
+        File(outDir, "$name.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 90, it) }
+    }
+
     fun shot(name: String) {
         compose.waitForIdle()
         Thread.sleep(400)

@@ -73,18 +73,24 @@ class R18_EcransTest : RecetteBase() {
         record("R21b", "Rotation – séance en cours", "valeurs saisies 133/86 puis rotation", "étape et valeurs conservées", if (kept2) "conservées" else "perdues", kept2, "R21_seance_paysage.png")
         device.setOrientationNatural(); Thread.sleep(5000)
         // Changement de taille d'écran = pliage/dépliage (écran externe du Razr 50s ≈ 1056×1066)
-        shell("wm size 1056x1066"); shell("wm density 360"); Thread.sleep(8000)
-        shot("R21_ecran_externe_pendant_seance")
-        val kept3 = exists("133", false)
+        // Après un changement de taille, l'émulateur logiciel peut mettre plus d'une minute à recréer l'activité :
+        // les contrôles passent par UiAutomator (sans synchronisation Compose), avec une attente jusqu'à 3 min.
+        fun uiHas(t: String, ms: Long = 180_000) = device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.textContains(t)), ms) == true
+        shell("wm size 1056x1066"); shell("wm density 360")
+        val kept3 = uiHas("133")
+        rawShot("R21_ecran_externe_pendant_seance")
         record("R21c", "Pliable – passage à l'écran externe pendant la saisie", "wm size 1056×1066, 360 dpi", "valeurs conservées, interface utilisable", if (kept3) "conservées" else "perdues", kept3, "R21_ecran_externe_pendant_seance.png")
-        back(); runCatching { click("Abandonner") }
-        waitText("Commencer une séance", timeout = 60_000)
-        shot("R21_accueil_ecran_externe")
-        record("R21d", "Écran externe – accueil", "1056×1066", "bouton principal visible, contenu défilant", if (exists("Commencer une séance")) "visible" else "absent", exists("Commencer une séance"), "R21_accueil_ecran_externe.png")
+        device.pressBack()
+        device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.text("Abandonner")), 120_000)?.click()
+        val home = uiHas("Commencer une séance")
+        rawShot("R21_accueil_ecran_externe")
+        record("R21d", "Écran externe – accueil", "1056×1066", "bouton principal visible, contenu défilant", if (home) "visible" else "absent", home, "R21_accueil_ecran_externe.png")
         for ((label, size, dens) in listOf(Triple("petit téléphone", "720x1280", "320"), Triple("tablette / grand écran déplié", "1600x2560", "320"))) {
-            shell("wm size $size"); shell("wm density $dens"); Thread.sleep(8000)
-            shot("R21_accueil_${size}")
-            record("R21-$size", "Taille d'écran – $label", size, "accueil affiché sans chevauchement, largeur de contenu limitée", if (exists("Commencer une séance")) "affiché" else "absent", exists("Commencer une séance"), "R21_accueil_${size}.png")
+            shell("wm size $size"); shell("wm density $dens"); Thread.sleep(5000)
+            val ok = uiHas("Commencer une séance")
+            Thread.sleep(3000)
+            rawShot("R21_accueil_${size}")
+            record("R21-$size", "Taille d'écran – $label", size, "accueil affiché sans chevauchement, largeur de contenu limitée", if (ok) "affiché" else "absent", ok, "R21_accueil_${size}.png")
         }
         shell("wm size reset"); shell("wm density reset"); Thread.sleep(6000)
     }
