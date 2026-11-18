@@ -41,10 +41,12 @@ r = subprocess.run(ADB + ["install", APK_OLD], capture_output=True, text=True)
 sh("pm", "grant", PKG, "android.permission.POST_NOTIFICATIONS")
 sh("am", "start", "-n", f"{PKG}/.MainActivity")
 wait("Bienvenue dans CardioSuivi", 240)
-# Le premier démarrage de la 1.0.1 provoque un ANR système sur cet émulateur logiciel : on répond « Attendre ».
-t0 = time.time()
-while time.time() - t0 < 150:
-    dismiss_anr(); time.sleep(5)
+# Le premier démarrage de la 1.0.1 provoque un ANR sur cet émulateur logiciel, suivi de la fermeture automatique de
+# l'application par le système (observé 4 fois sur 4) : on attend, puis on relance si nécessaire (2e démarrage normal).
+time.sleep(90)
+if "com.cardiosuivi.app/" not in sh("dumpsys", "window"):
+    sh("am", "start", "-n", f"{PKG}/.MainActivity")
+    wait("Bienvenue dans CardioSuivi", 240); time.sleep(30)
 for _ in range(3):
     if find("J'ai compris") is None: scroll_down()
 tap("J'ai compris")
