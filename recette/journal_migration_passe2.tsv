@@ -1,1 +1,7 @@
-
+MP01	Valeurs saisies et vérifiées dans la 1.0.1	nom MIGFICTIF, traitement TRTFICTIF, IA Anthropic (bouton radio)	les 3 valeurs visibles dans la 1.0.1 avant mise à jour	nom=True, traitement=True, radios=['false', 'true', 'false']	RÉUSSI	journal adb
+MP02	Mise à jour 1.0.1 → 1.1.0	adb install -r	version 1.1.0	ll
+Success version 1.1.0	RÉUSSI	journal adb
+MP03	Profil conservé	nom « MIGFICTIF » saisi en 1.0.1	accueil « Bonjour MIGFICTIF »	affiché	RÉUSSI	journal adb
+MP04	Traitement conservé	« TRTFICTIF » saisi en 1.0.1	présent dans la 1.1.0	présent	RÉUSSI	journal adb
+MP05	Fournisseur d'IA conservé	Anthropic sélectionné en 1.0.1	Anthropic toujours sélectionné	radios (Aucun, Anthropic, OpenAI) = ['false', 'true', 'false']	RÉUSSI	journal adb
+MP06	Aucun plantage	journal crash	aucun plantage de com.cardiosuivi.app	aucun	RÉUSSI	journal adb
