@@ -1,5 +1,6 @@
 package com.cardiosuivi.domain.export
 
+import com.cardiosuivi.domain.entry.localDateTime
 import com.cardiosuivi.domain.model.AggregationMethod
 import com.cardiosuivi.domain.model.MeasurementSession
 import com.cardiosuivi.domain.stats.SessionStatistics
@@ -20,6 +21,8 @@ object CsvExporter {
         "seance_id", "date", "moment", "protocole", "statut", "bras", "mesure_n", "heure_mesure",
         "systolique_mmHg", "diastolique_mmHg", "pouls_bpm", "pression_pulsee_mmHg", "source",
         "valeur_seance_sys", "valeur_seance_dia", "valeur_seance_pouls", "methode_agregation", "symptomes", "notes_seance",
+        // 1.1.0 : colonnes ajoutées en fin de ligne (fichiers 1.0 toujours lisibles de la même façon).
+        "fuseau_horaire", "corrigee_le",
     )
 
     fun export(sessions: List<MeasurementSession>, method: AggregationMethod, zone: ZoneId): String {
@@ -36,7 +39,7 @@ object CsvExporter {
                     s.status.label,
                     s.arm.label,
                     m.index.toString(),
-                    TS.format(m.measuredAt.atZone(zone)),
+                    TS.format(m.localDateTime(zone)),
                     m.systolic.toString(),
                     m.diastolic.toString(),
                     m.pulse?.toString() ?: "",
@@ -48,6 +51,8 @@ object CsvExporter {
                     method.label,
                     s.symptoms.joinToString(", ") { it.label },
                     s.notes,
+                    m.zoneId ?: "",
+                    m.modifiedAt?.let { TS.format(it.atZone(zone)) } ?: "",
                 )
                 sb.append(row.joinToString(";") { escape(it) }).append("\r\n")
             }

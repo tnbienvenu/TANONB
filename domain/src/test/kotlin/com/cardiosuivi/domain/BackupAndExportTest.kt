@@ -87,4 +87,27 @@ class BackupAndExportTest {
         assertTrue(lines[1].contains(";135,0;87,0;72,0;"))
         assertTrue(lines[1].contains("\"'=SOMME(A1); test\""))
     }
+
+    /** Une sauvegarde produite par la 1.0.x (format 1, sans les champs 1.1.0) reste lisible par la 1.1.0. */
+    @Test
+    fun backupFormat1FromVersion10IsStillReadable() {
+        val v1Json = """{"formatVersion":1,"appVersion":"1.0.1","createdAtEpochMs":1762236000000,
+            "profile":{"displayName":"FICTIF","birthDate":null,"sex":"UNSPECIFIED","heightCm":null,"weightKg":null,"targetSystolic":135,"targetDiastolic":85,"medicalHistory":"","observations":""},
+            "treatments":[],"observations":[],
+            "sessions":[{"startedAtEpochMs":1762236300000,"completedAtEpochMs":1762236600000,"localDate":"2025-11-04","period":"MORNING","status":"COMPLETED",
+              "protocol":"USUAL","plannedMeasurements":3,"arm":"RIGHT","symptoms":[],"notes":"",
+              "measurements":[{"index":1,"systolic":141,"diastolic":91,"pulse":null,"measuredAtEpochMs":1762236312345,"source":"OCR","ocrConfidence":0.9,"note":""}]}],
+            "settings":{"reminders.days":"WEDNESDAY,THURSDAY,FRIDAY"}}"""
+        val password = "motdepasse-fictif".toCharArray()
+        val enc = com.cardiosuivi.domain.backup.BackupCrypto.encrypt(v1Json.toByteArray(Charsets.UTF_8), password, 10_000)
+        val p = com.cardiosuivi.domain.backup.BackupCrypto.decryptPayload(enc, password)
+        assertEquals(1, p.formatVersion)
+        val m = p.sessions.single().measurements.single()
+        assertEquals(1762236312345, m.measuredAtEpochMs)
+        assertEquals(null, m.pulse)
+        assertEquals(null, m.zoneId); assertEquals(null, m.modifiedAtEpochMs)
+        assertEquals("RIGHT", p.sessions.single().arm)
+        assertTrue(p.aiAnalyses.isEmpty())
+        assertEquals(2, com.cardiosuivi.domain.backup.BackupPayload.CURRENT_FORMAT)
+    }
 }

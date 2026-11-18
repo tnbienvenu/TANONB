@@ -4,7 +4,8 @@
 - **Offline-first** : toutes les données restent sur le téléphone ; aucun compte, aucune synchronisation, **aucune télémétrie**, aucun SDK d'analyse ou de publicité.
 - **Base chiffrée** SQLCipher (AES-256). Phrase secrète aléatoire (32 octets) chiffrée par une clé AES-256-GCM **non exportable** de l'Android Keystore, stockée dans `noBackupFilesDir`.
 - **Sauvegarde Android désactivée** (`allowBackup=false`, règles d'extraction excluant tout) : aucune donnée de santé dans le cloud Google ni lors d'un transfert d'appareil.
-- **Photos** : enregistrées dans le cache privé le temps de la validation, supprimées après chaque mesure, et purgées au démarrage (> 24 h). Aucune image ne quitte l'appareil (OCR embarqué).
+- **Photos** : aucune depuis la 1.1.0 (OCR et caméra supprimés). Les éventuelles photos temporaires laissées par la 1.0.x sont purgées au démarrage.
+- **Interprétations IA** (1.1.0) : les réponses reçues d'un fournisseur d'IA sont conservées dans la base chiffrée (date, fournisseur, question, réponse), incluses dans la sauvegarde chiffrée et effacées avec « Supprimer toutes les données ».
 - **Fichiers exportés** (PDF/CSV) : cache privé, partagés via FileProvider avec permission temporaire, purgés après 1 h. Un fichier partagé quitte la protection de l'application : l'utilisateur en est averti.
 
 ## Accès à l'application
@@ -24,7 +25,6 @@ Format `.csbk` : en-tête `CSBK` + version + itérations + sel (16 o) + IV (12 o
 ## Autorisations Android
 | Autorisation | Usage |
 |---|---|
-| `CAMERA` | photo de l'écran du tensiomètre (facultatif : import ou saisie manuelle possibles) |
 | `POST_NOTIFICATIONS` | rappels de séance |
 | `SCHEDULE_EXACT_ALARM` | rappels à l'heure exacte (accordée par l'utilisateur ; repli sur une fenêtre de 10 min) |
 | `RECEIVE_BOOT_COMPLETED` | rétablir les rappels après redémarrage |

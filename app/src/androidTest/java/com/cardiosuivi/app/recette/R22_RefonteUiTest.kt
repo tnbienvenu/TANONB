@@ -75,13 +75,13 @@ class R22_RefonteUiTest : RecetteBase() {
         resetApp(); seedDemo(); launch()
 
         // --- Tableau de bord ---
-        waitText("Bonjour Démo (fictif)"); waitText("Moyenne de la séance"); Thread.sleep(1500)
+        waitText("Bonjour Démo (fictif)"); waitText("Moyenne de référence de la séance"); Thread.sleep(1500)
         shot("UI_01_accueil_haut")
-        val lastOk = exists("Bonjour Démo (fictif)") && exists("128", false) && exists("82", false) && exists("72", false)
+        val lastOk = exists("Dernière séance") && exists("Bonjour Démo (fictif)") && exists("128", false) && exists("82", false) && exists("72", false)
         record("R22a", "Accueil – dernière tension", "séance fictive 131/84/74, 129/83/72, 128/82/72", "en-tête « Bonjour », dernière mesure 128 / 82 / 72 en grand",
             if (lastOk) "affichée" else "absente", lastOk, "UI_01_accueil_haut.png")
-        val mean = exists("Moyenne de la séance : 129/83 mmHg")
-        record("R22b", "Accueil – moyenne de séance", "(131+129+128)/3 = 129,3 ; (84+83+82)/3 = 83", "« Moyenne de la séance : 129/83 mmHg »", if (mean) "conforme" else "non conforme", mean, "UI_01_accueil_haut.png")
+        val mean = exists("Moyenne de référence de la séance : 129/83 mmHg")
+        record("R22b", "Accueil – moyenne de séance", "(131+129+128)/3 = 129,3 ; (84+83+82)/3 = 83", "« Moyenne de référence de la séance : 129/83 mmHg »", if (mean) "conforme" else "non conforme", mean, "UI_01_accueil_haut.png")
         val cd = runCatching { compose.onAllNodes(hasContentDescription("Systolique : 128 mmHg")).fetchSemanticsNodes().isNotEmpty() }.getOrDefault(false)
         record("R22c", "Accessibilité – valeurs lues par TalkBack", "bloc systolique", "description « Systolique : 128 mmHg » (libellé + valeur + unité)", if (cd) "présente" else "absente", cd, "—")
         scrollTo("Évolution tensionnelle"); shot("UI_02_accueil_evolution")
@@ -100,15 +100,15 @@ class R22_RefonteUiTest : RecetteBase() {
         tab("Tendances"); waitText("Moyennes de la période"); shot("UI_07_tendances")
         scrollTo("Fréquence cardiaque"); shot("UI_08_tendances_pouls")
         scrollTo("Matin et soir"); shot("UI_09_tendances_matin_soir")
-        val seg = exists("Année") && exists("90 jours")
-        record("R22f", "Tendances – filtres de période", "contrôle segmenté", "7 jours | 30 jours | 90 jours | Année | Tout", if (seg) "présents" else "absents", seg, "UI_07_tendances.png")
+        val seg = exists("1 an", false) && exists("90 jours")
+        record("R22f", "Tendances – filtres de période", "contrôle segmenté", "7 jours | 30 jours | 90 jours | 1 an | Tout", if (seg) "présents" else "absents", seg, "UI_07_tendances.png")
 
         // --- Analyse IA ---
         tab("Analyse IA"); waitText("Synthèse générale"); shot("UI_10_analyse")
-        val cards = listOf("1. Synthèse générale", "2. Évolution de la tension", "3. Analyse systolique", "4. Analyse diastolique", "5. Comparaison matin / soir",
-            "6. Points de vigilance", "7. Recommandations générales", "8. Questions pour le cardiologue", "Interprétation par l'IA").all { exists(it) }
+        val cards = listOf("1. Synthèse générale", "2. Évolution de la tension", "3. Analyse systolique", "4. Analyse diastolique", "5. Fréquence cardiaque",
+            "6. Comparaison matin / soir", "7. Points de vigilance", "8. Recommandations générales", "9. Questions pour le médecin", "Interprétation par l'IA").all { exists(it) }
         val local = exists("Calcul local · sans IA") && exists("Générée par une IA · facultative")
-        record("R22g", "Analyse IA – 8 cartes + IA séparée", "jeu fictif", "8 cartes calculées localement (badge « Calcul local ») et carte IA distincte",
+        record("R22g", "Analyse IA – 9 cartes + IA séparée", "jeu fictif", "9 cartes calculées localement (badge « Calcul local ») et carte IA distincte",
             "cartes=$cards, badges=$local", cards && local, "UI_10_analyse.png")
         scrollTo("3. Analyse systolique"); shot("UI_11_analyse_systolique")
         scrollTo("Interprétation par l'IA"); shot("UI_12_analyse_ia")
@@ -121,14 +121,13 @@ class R22_RefonteUiTest : RecetteBase() {
         tab("Accueil"); click("Commencer une séance")
         waitText("Avant de commencer"); shot("UI_15_seance_preparation")
         click("Je suis déjà reposé(e) : commencer")
-        answerPermissionDialog(timeout = 10_000)
-        click("Saisie manuelle", substring = true)
-        waitText("MESURE 1 / 3"); shot("UI_16_seance_saisie")
-        type("Systolique (SYS", "128"); type("Diastolique (DIA", "82"); type("Fréquence cardiaque (PUL", "72"); hideKeyboard()
-        click("Valider ces valeurs")
+        waitText("MESURE 1 SUR 3"); shot("UI_16_seance_saisie")
+        type("SYS — ", "128"); type("DIA — ", "82"); type("PUL — ", "72"); hideKeyboard()
+        shot("UI_16b_seance_saisie_remplie")
+        click("Valider et continuer")
         waitText("Mesure 1 enregistrée"); Thread.sleep(3000); shot("UI_17_seance_chronometre")
-        val step = exists("MESURE 2 / 3")
-        record("R22h", "Séance guidée – progression", "mesure 1 validée", "indicateur « MESURE 2 / 3 » et chronomètre circulaire", if (step) "affiché" else "absent", step, "UI_17_seance_chronometre.png")
+        val step = exists("MESURE 2 SUR 3")
+        record("R22h", "Séance guidée – progression", "mesure 1 validée", "indicateur « MESURE 2 SUR 3 » et chronomètre circulaire", if (step) "affiché" else "absent", step, "UI_17_seance_chronometre.png")
         click("Arrêter ici")
         waitText("Récapitulatif des mesures"); shot("UI_18_seance_recapitulatif")
         // Abandon de la séance de démonstration (non enregistrée).

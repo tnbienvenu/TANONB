@@ -29,7 +29,7 @@ Fichiers fournis (signés, version 1.0.0) :
 
 ### Particularités du Razr 50s (pliable à clapet)
 - L'interface est en colonne unique, largeur limitée et défilante : elle s'adapte à l'écran principal déplié comme à l'écran externe.
-- Pour photographier le tensiomètre, utilisez le téléphone déplié (écran principal) : l'aperçu est plus grand et la mise au point plus facile.
+- La saisie des trois valeurs (SYS, DIA, PUL) utilise le clavier numérique : le téléphone déplié (écran principal) est plus confortable, l'écran externe reste utilisable.
 
 ## 3. Assistant IA (facultatif)
 

@@ -23,18 +23,16 @@ class R03_SeancesTest : RecetteBase() {
         waitText("Avant de commencer")
         shot("R03_preparation")
         click("Je suis déjà reposé(e) : commencer")
-        answerPermissionDialog(allow = true, timeout = 20_000) // caméra
-        waitText("Saisie manuelle", timeout = 90_000)
+        waitText("SYS — Pression systolique", timeout = 90_000)
     }
 
     private fun enterMeasurement(sys: String, dia: String, pul: String, proof: String? = null) {
-        click("Saisie manuelle", substring = true)
-        waitText("Systolique (SYS, mmHg)")
-        type("Systolique (SYS", sys)
-        type("Diastolique (DIA", dia)
-        type("Fréquence cardiaque (PUL", pul)
+        waitText("SYS — Pression systolique")
+        type("SYS — ", sys)
+        type("DIA — ", dia)
+        type("PUL — ", pul)
         proof?.let { shot(it) }
-        click("Valider ces valeurs")
+        click("Valider et continuer")
     }
 
     @Test
@@ -42,7 +40,7 @@ class R03_SeancesTest : RecetteBase() {
         resetApp()
         launch()
         startManualSession()
-        shot("R03_capture_photo")
+        shot("R03_saisie_vide")
         enterMeasurement("148", "94", "76", "R03_saisie_mesure1")
         waitText("Mesure 1 enregistrée")
         waitText("Avant la mesure 2")
@@ -85,8 +83,8 @@ class R03_SeancesTest : RecetteBase() {
             "${s.size} séance(s), statut ${s.firstOrNull()?.status}, mesures ${s.firstOrNull()?.measurements?.map { "${it.systolic}/${it.diastolic}@${it.measuredAt}" }}",
             ok && s[0].measurements.zipWithNext().all { (a, b) -> a.measuredAt < b.measuredAt })
         shot("R03_tableau_de_bord_apres")
-        // Refonte 1.1 : la carte « Dernière tension » affiche la dernière mesure (136/88) en grand et la moyenne de séance (141/91).
-        val dash = exists("Dernière tension") && exists("136", false) && exists("88", false) && exists("Moyenne de la séance : 141/91 mmHg")
+        // 1.1 : la carte « Dernière séance » affiche la dernière mesure (136/88) en grand et la moyenne de référence (141/91).
+        val dash = exists("Dernière séance") && exists("136", false) && exists("88", false) && exists("Moyenne de référence de la séance : 141/91 mmHg")
         record("R03e", "Tableau de bord", "après séance", "dernière mesure 136/88 et moyenne de séance 141/91 affichées", if (dash) "affichées" else "absentes",
             dash, "R03_tableau_de_bord_apres.png")
 
@@ -102,49 +100,53 @@ class R03_SeancesTest : RecetteBase() {
         resetApp()
         launch()
         startManualSession()
-        click("Saisie manuelle", substring = true)
-        click("Valider ces valeurs")
-        val empty = exists("Les valeurs systolique et diastolique sont obligatoires.")
+        click("Valider et continuer")
+        val empty = exists("SYS est obligatoire") && exists("DIA est obligatoire") && exists("PUL est obligatoire")
         shot("R04_champs_vides")
-        record("R04a", "Validation de mesure – champs vides", "SYS et DIA vides", "message d'erreur, rien enregistré", if (empty) "message affiché" else "aucun message",
+        record("R04a", "Saisie – SYS, DIA et PUL vides", "validation sans valeur", "3 messages « … est obligatoire », rien enregistré", if (empty) "3 messages affichés" else "messages absents",
             empty && runBlocking { c.sessions.getAll().isEmpty() }, "R04_champs_vides.png")
 
-        type("Systolique (SYS", "8x0"); type("Diastolique (DIA", "120"); type("Fréquence cardiaque (PUL", "7a2")
+        type("SYS — ", "8x0"); type("DIA — ", "120"); type("PUL — ", "7a2")
         val filtered = exists("80", false) && exists("72", false)
-        record("R04b", "Validation – caractères non numériques", "« 8x0 », « 7a2 »", "lettres filtrées → 80 et 72", if (filtered) "filtrées" else "non filtrées", filtered, "—")
-        click("Valider ces valeurs")
-        val inverted = exists("Vérifiez les valeurs") && exists("doit être supérieure")
+        record("R04b", "Saisie – caractères non numériques", "« 8x0 », « 7a2 »", "seuls les chiffres sont acceptés → 80 et 72", if (filtered) "filtrés" else "non filtrés", filtered, "—")
+        click("Valider et continuer")
+        val inverted = exists("doit être supérieure à la diastolique")
+        val kept = exists("80", false) && exists("120", false) && exists("72", false)
         shot("R04_inversion")
-        record("R04c", "Validation – SYS ≤ DIA", "80 / 120", "dialogue de vérification « SYS doit être supérieure à DIA »", if (inverted) "dialogue affiché" else "absent", inverted, "R04_inversion.png")
-        click("Corriger")
+        record("R04c", "Saisie – SYS ≤ DIA refusée", "80 / 120 / 72", "refus avec message sous le champ, valeurs saisies conservées, rien enregistré",
+            "message=$inverted, valeurs conservées=$kept", inverted && kept && runBlocking { c.sessions.getAll().isEmpty() }, "R04_inversion.png")
 
-        type("Systolique (SYS", "300"); type("Diastolique (DIA", "20"); type("Fréquence cardiaque (PUL", "250")
-        click("Valider ces valeurs")
-        val bounds = exists("hors de la plage de saisie attendue")
+        type("SYS — ", "300"); type("DIA — ", "20"); type("PUL — ", "250")
+        click("Valider et continuer")
+        val bounds = exists("Vérifiez les valeurs") && exists("valeur inhabituelle")
         shot("R04_hors_bornes")
-        record("R04d", "Validation – hors bornes", "300 / 20 / 250", "dialogue listant les 3 valeurs hors plage", if (bounds) "affiché" else "absent", bounds, "R04_hors_bornes.png")
+        record("R04d", "Saisie – hors bornes de plausibilité (inchangées)", "300 / 20 / 250", "dialogue de vérification listant les valeurs inhabituelles", if (bounds) "affiché" else "absent", bounds, "R04_hors_bornes.png")
         click("Corriger")
 
-        type("Systolique (SYS", "1234")
+        type("SYS — ", "1234")
         val limited = exists("123", false) && !exists("1234", false)
-        record("R04e", "Validation – longueur", "« 1234 »", "saisie limitée à 3 chiffres (123)", if (limited) "123" else "non limitée", limited, "—")
+        record("R04e", "Saisie – longueur", "« 1234 »", "saisie limitée à 3 chiffres (123)", if (limited) "123" else "non limitée", limited, "—")
 
-        type("Systolique (SYS", "128"); type("Diastolique (DIA", "82"); type("Fréquence cardiaque (PUL", "")
-        click("Valider ces valeurs")
+        type("SYS — ", "128"); type("DIA — ", "82"); type("PUL — ", "")
+        click("Valider et continuer")
+        val pulseRequired = exists("PUL est obligatoire") && runBlocking { c.sessions.getAll().isEmpty() }
+        shot("R04_pouls_obligatoire")
+        record("R04f", "Saisie – PUL obligatoire", "128 / 82 / (vide)", "refus « PUL est obligatoire », rien enregistré", if (pulseRequired) "refusé" else "accepté", pulseRequired, "R04_pouls_obligatoire.png")
+        type("PUL — ", "72")
+        click("Valider et continuer")
         waitText("Mesure 1 enregistrée")
         val m = runBlocking { c.sessions.getAll().firstOrNull()?.measurements?.firstOrNull() }
-        record("R04f", "Validation – pouls facultatif", "128 / 82 / (vide)", "mesure enregistrée avec pouls absent (non inventé)", "pouls=${m?.pulse}, ${m?.systolic}/${m?.diastolic}", m != null && m.pulse == null && m.systolic == 128)
-        record("R04g", "Séance en cours non comptée", "1 mesure non validée", "séance au statut « En cours »", "${runBlocking { c.sessions.getAll().first().status }}",
-            runBlocking { c.sessions.getAll().first().status } == SessionStatus.IN_PROGRESS, "—")
+        record("R04g", "Séance en cours non comptée", "1 mesure 128/82/72 validée", "mesure enregistrée, séance au statut « En cours »",
+            "${m?.systolic}/${m?.diastolic}/${m?.pulse}, statut ${runBlocking { c.sessions.getAll().first().status }}",
+            m?.pulse == 72 && runBlocking { c.sessions.getAll().first().status } == SessionStatus.IN_PROGRESS, "—")
 
         // Confirmation explicite d'une valeur atypique mais réelle
         click("Mesurer maintenant")
-        click("Saisie manuelle", substring = true)
-        type("Systolique (SYS", "265"); type("Diastolique (DIA", "100"); type("Fréquence cardiaque (PUL", "80")
-        click("Valider ces valeurs")
+        type("SYS — ", "265"); type("DIA — ", "100"); type("PUL — ", "80")
+        click("Valider et continuer")
         click("Je confirme ces valeurs")
         waitText("Mesure 2 enregistrée")
-        record("R04h", "Validation – valeur hors bornes confirmée", "265/100 confirmée", "enregistrée après confirmation explicite", "mesure 2 enregistrée", true, "—")
+        record("R04h", "Saisie – valeur hors bornes confirmée", "265/100/80 confirmée", "enregistrée après confirmation explicite", "mesure 2 enregistrée", true, "—")
     }
 
     @Test
@@ -169,18 +171,17 @@ class R03_SeancesTest : RecetteBase() {
         relaunch()
         record("R05b", "Interruption – relance", "relance de l'activité", "séance en cours toujours proposée", if (exists("Séance en cours")) "proposée" else "perdue", exists("Séance en cours"), "—")
         click("Reprendre")
-        waitText("Saisie manuelle", "Résumé de la séance", timeout = 90_000)
+        waitText("SYS — Pression systolique", "Résumé de la séance", timeout = 90_000)
         record("R05c", "Reprise de séance", "Reprendre", "reprise à la mesure 3", if (exists("Mesure 3")) "mesure 3" else "autre étape", exists("Mesure 3"), "—")
         // On s'arrête à 2 mesures : séance incomplète
         back(); click("Reprendre plus tard"); waitText("Séance en cours")
         click("Reprendre")
-        waitText("Saisie manuelle", timeout = 90_000)
-        click("Saisie manuelle", substring = true)
+        waitText("SYS — Pression systolique", timeout = 90_000)
         back() // retour depuis la saisie → dialogue
         waitText("Quitter la séance ?")
         click("Continuer")
         // Résumé via « Arrêter ici » n'est proposé qu'en intervalle : on valide une mesure puis on supprime ? Non : on passe par le résumé
-        record("R05d", "Dialogue de sortie – Continuer", "retour puis « Continuer »", "reste dans la séance", if (exists("Systolique (SYS")) "reste" else "quitte", exists("Systolique (SYS"), "—")
+        record("R05d", "Dialogue de sortie – Continuer", "retour puis « Continuer »", "reste dans la séance", if (exists("SYS — Pression systolique")) "reste" else "quitte", exists("SYS — Pression systolique"), "—")
     }
 
     @Test

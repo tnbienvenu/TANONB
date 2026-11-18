@@ -13,12 +13,10 @@ else
   $ADB shell pm grant $P android.permission.POST_NOTIFICATIONS 2>/dev/null
 fi
 D=/sdcard/Android/data/$P/files
-$ADB shell mkdir -p $D/ocr_ref
 [ "$KEEP" = "1" ] || $ADB shell rm -f $D/recette/journal.tsv
-$ADB push /tmp/claude-0/-home-user-TANONB/abab4515-96fe-5cce-8a7e-c22f93855532/scratchpad/ocr_ref/. $D/ocr_ref/ >/dev/null
 for cls in "$@"; do
   if [[ "$cls" == *r20_permissions_refusees* ]]; then
-    for perm in CAMERA POST_NOTIFICATIONS; do
+    for perm in POST_NOTIFICATIONS; do
       $ADB shell pm revoke $P android.permission.$perm
       $ADB shell pm clear-permission-flags $P android.permission.$perm user-set user-fixed
     done

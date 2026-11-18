@@ -108,7 +108,8 @@ class PdfReportGenerator(private val context: Context) {
 
             section("3. Protocole de mesure")
             para("Séances de ${d.measurementsPerSession} mesures successives espacées d'environ ${d.intervalSeconds} s, après 5 minutes de repos, assis, dos soutenu, pieds au sol, bras à hauteur du cœur, sans parler. " +
-                "Valeurs lues sur l'écran du tensiomètre (photographie avec reconnaissance automatique validée par l'utilisateur, ou saisie manuelle).")
+                "Valeurs recopiées manuellement depuis l'écran du tensiomètre, au bras gauche ; date et heure enregistrées automatiquement par l'application. " +
+                "Les séances antérieures à la version 1.1 peuvent comporter des valeurs lues par photographie (validées par l'utilisateur).")
             para("Méthode de calcul de la valeur de séance : ${r.method.label}. ${r.method.description} Les moyennes de période sont des moyennes de valeurs de séance ; les moyennes journalières sont des moyennes des séances d'un même jour.", bold)
 
             section("4–5. Mesures et moyennes de chaque séance")

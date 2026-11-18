@@ -35,7 +35,7 @@ class CardioSuiviApp : Application() {
         })
 
         appScope.launch(Dispatchers.IO) {
-            // Les photos temporaires de séances anciennes ne sont pas conservées.
+            // Nettoyage des photos temporaires éventuellement laissées par la version 1.0.x (OCR supprimé en 1.1.0).
             File(cacheDir, "photos").listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > 24 * 3600_000L }?.forEach { it.delete() }
             File(cacheDir, "exports").listFiles()?.filter { System.currentTimeMillis() - it.lastModified() > 3600_000L }?.forEach { it.delete() }
             val s = container.settings.current()
