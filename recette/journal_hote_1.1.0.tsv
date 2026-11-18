@@ -2,3 +2,4 @@ R21c	Pliable – écran externe pendant la saisie (contrôle hôte)	wm size 1056
 R21d	Écran externe – accueil (contrôle hôte)	1056x1066	accueil affiché, contenu défilant	accueil affiché (bouton principal sous la ligne de flottaison)	RÉUSSI	preuves/R21d_hote_ecran_externe_accueil.png
 R21-720x1280	Taille petit téléphone (contrôle hôte)	720x1280	accueil affiché	affiché	RÉUSSI	preuves/R21_hote_720x1280.png
 R21-1600x2560	Taille grand écran (contrôle hôte)	1600x2560	accueil affiché, largeur limitée	affiché, largeur limitée	RÉUSSI	preuves/R21_hote_1600x2560.png
+R16e	Commencer depuis la notification (contrôle hôte)	bouton « Commencer » de la notification de rappel	ouverture directe de la séance	lancée à 19:14:15, affichée en 5,1 s (logcat ActivityTaskManager « Displayed … +5s120ms ») ; écran « Nouvelle séance » capturé ; la détection par vidage de hiérarchie du test ne voyait que 6 nœuds de l'application	RÉUSSI	preuves/R16e_seance_ouverte_depuis_notification.png
