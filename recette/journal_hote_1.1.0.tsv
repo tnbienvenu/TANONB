@@ -1,0 +1,4 @@
+R21c	Pliable – écran externe pendant la saisie (contrôle hôte)	wm size 1056x1066, 360 dpi, saisie 133/86 en cours	valeurs conservées	affichées après 56 s (133, 86, MESURE 1 SUR 3)	RÉUSSI	preuves/R21c_hote_ecran_externe_valeurs.png
+R21d	Écran externe – accueil (contrôle hôte)	1056x1066	accueil affiché, contenu défilant	accueil affiché (bouton principal sous la ligne de flottaison)	RÉUSSI	preuves/R21d_hote_ecran_externe_accueil.png
+R21-720x1280	Taille petit téléphone (contrôle hôte)	720x1280	accueil affiché	affiché	RÉUSSI	preuves/R21_hote_720x1280.png
+R21-1600x2560	Taille grand écran (contrôle hôte)	1600x2560	accueil affiché, largeur limitée	affiché, largeur limitée	RÉUSSI	preuves/R21_hote_1600x2560.png
