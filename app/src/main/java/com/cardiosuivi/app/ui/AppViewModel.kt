@@ -43,6 +43,8 @@ class AppViewModel(val c: AppContainer) : ViewModel() {
     val profile: StateFlow<Profile> = c.profile.observeProfile().stateIn(viewModelScope, SharingStarted.Eagerly, Profile())
     val treatments: StateFlow<List<Treatment>> = c.profile.observeTreatments().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val observations: StateFlow<List<Observation>> = c.profile.observeObservations().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    /** Dernière interprétation IA réellement reçue d'un fournisseur (null si aucune). */
+    val latestAi: StateFlow<com.cardiosuivi.domain.model.AiAnalysisRecord?> = c.aiAnalyses.observeLatest().stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     fun alertEngine(): AlertEngine = AlertEngine(settings.value.emergencyNumber)
 
@@ -73,6 +75,7 @@ class AppViewModel(val c: AppContainer) : ViewModel() {
         c.settings.markRescheduled()
     }
 
+    fun setWindows(w: com.cardiosuivi.domain.model.PeriodWindows, onResult: (Boolean) -> Unit = {}) = viewModelScope.launch { onResult(c.settings.setWindows(w)) }
     fun setProtocol(interval: Int, perSession: Int) = viewModelScope.launch { c.settings.setProtocol(interval, perSession) }
     fun setAggregation(m: AggregationMethod) = viewModelScope.launch { c.settings.setAggregation(m) }
     fun setBiometric(on: Boolean) = viewModelScope.launch { c.settings.setBiometric(on) }

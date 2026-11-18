@@ -27,7 +27,10 @@ enum class SessionStatus(val label: String) {
     val isValidated: Boolean get() = this != IN_PROGRESS
 }
 
-/** Origine d'une valeur enregistrée. */
+/**
+ * Origine d'une valeur enregistrée. Depuis la 1.1.0, seule la saisie manuelle existe ; les valeurs OCR sont conservées
+ * pour afficher correctement l'historique des mesures enregistrées avec la 1.0.x (jamais réécrites).
+ */
 enum class MeasurementSource(val label: String) {
     OCR("Reconnaissance automatique, validée"),
     OCR_CORRECTED("Reconnaissance automatique, corrigée"),
@@ -42,7 +45,18 @@ enum class ProtocolType(val label: String) {
     STANDARDIZED_HBPM("Automesure standardisée");
 }
 
-enum class Arm(val label: String) { LEFT("Bras gauche"), RIGHT("Bras droit"), UNKNOWN("Non précisé") }
+/**
+ * Bras de mesure. Depuis la 1.1.0, toute nouvelle séance est enregistrée au bras gauche, sans choix (mesures toujours
+ * réalisées au bras gauche) ; les valeurs des séances antérieures sont conservées telles quelles.
+ */
+enum class Arm(val label: String) {
+    LEFT("Bras gauche"), RIGHT("Bras droit"), UNKNOWN("Non précisé");
+
+    companion object {
+        /** Bras enregistré automatiquement pour les nouvelles séances. */
+        val DEFAULT_FOR_NEW = LEFT
+    }
+}
 
 /**
  * Symptômes déclarés facultativement à la fin d'une séance.
@@ -77,12 +91,21 @@ data class Measurement(
     val diastolic: Int,
     /** Fréquence cardiaque ; peut être absente si non affichée/illisible et non saisie. */
     val pulse: Int?,
-    /** Heure réelle de la mesure. */
+    /**
+     * Horodatage de la mesure, généré par l'application au moment de la validation (horloge du téléphone, à la
+     * milliseconde). Jamais modifié par une correction de valeur.
+     */
     val measuredAt: Instant,
     val source: MeasurementSource,
-    /** Confiance globale de l'OCR (0..1), si la mesure provient d'une photo. */
+    /** Confiance globale de l'OCR (0..1) — uniquement pour les mesures historiques enregistrées par photo en 1.0.x. */
     val ocrConfidence: Double? = null,
     val note: String = "",
+    /** Date de la dernière correction des valeurs, distincte de [measuredAt] ; null si jamais corrigée. */
+    val modifiedAt: Instant? = null,
+    /** Fuseau horaire du téléphone au moment de la mesure (ex. « Europe/Paris ») ; null pour les mesures antérieures à la 1.1.0. */
+    val zoneId: String? = null,
+    /** Décalage UTC en secondes au moment de la mesure (lève l'ambiguïté lors des changements d'heure). */
+    val utcOffsetSeconds: Int? = null,
 ) {
     /** Pression pulsée = systolique − diastolique. */
     val pulsePressure: Int get() = systolic - diastolic
@@ -154,6 +177,39 @@ enum class AggregationMethod(val label: String, val description: String) {
     );
 }
 
+/**
+ * Plages horaires servant à classer automatiquement une séance en « matin » ou « soir » à partir de l'heure de sa
+ * première mesure (bornes de début incluses, de fin exclues ; `eveningEnd` = 00:00 signifie « jusqu'à minuit »).
+ * Une séance hors de ces plages n'est classée ni matin ni soir (« Autre ») : aucune période n'est attribuée
+ * artificiellement. Valeurs initiales configurables, non médicales, choisies pour contenir les heures de rappel par défaut
+ * (07:00 et 19:00) et le délai de tolérance des séances manquées (3 h).
+ */
+data class PeriodWindows(
+    val morningStart: LocalTime = LocalTime.of(5, 0),
+    val morningEnd: LocalTime = LocalTime.of(12, 0),
+    val eveningStart: LocalTime = LocalTime.of(17, 0),
+    val eveningEnd: LocalTime = LocalTime.MIDNIGHT,
+) {
+    private fun contains(start: LocalTime, end: LocalTime, t: LocalTime): Boolean = when {
+        end == LocalTime.MIDNIGHT -> !t.isBefore(start)
+        start.isBefore(end) -> !t.isBefore(start) && t.isBefore(end)
+        else -> !t.isBefore(start) || t.isBefore(end) // plage traversant minuit
+    }
+
+    /** Période correspondant à l'heure locale [t], ou [SessionPeriod.OTHER] si aucune plage ne la contient. */
+    fun periodOf(t: LocalTime): SessionPeriod = when {
+        contains(morningStart, morningEnd, t) -> SessionPeriod.MORNING
+        contains(eveningStart, eveningEnd, t) -> SessionPeriod.EVENING
+        else -> SessionPeriod.OTHER
+    }
+
+    /** Vrai si les deux plages ne se chevauchent pas et ne sont pas vides. */
+    val isValid: Boolean
+        get() = morningStart != morningEnd && eveningStart != eveningEnd &&
+            periodOf(morningStart) == SessionPeriod.MORNING &&
+            !contains(eveningStart, eveningEnd, morningStart) && !contains(morningStart, morningEnd, eveningStart)
+}
+
 /** Configuration des rappels : jours, horaires (valeurs initiales configurables, non médicales). */
 data class ReminderConfig(
     val enabled: Boolean = true,
@@ -164,4 +220,17 @@ data class ReminderConfig(
     val eveningTime: LocalTime = LocalTime.of(19, 0),
     /** Délai après l'heure prévue au-delà duquel une séance non réalisée est considérée comme manquée. */
     val missedGraceMinutes: Int = 180,
+)
+
+/**
+ * Interprétation produite par un fournisseur d'IA externe et conservée localement (base chiffrée), avec sa date,
+ * afin de pouvoir la consulter ensuite. Les réponses locales (sans IA) ne sont pas enregistrées : elles sont recalculées.
+ */
+data class AiAnalysisRecord(
+    val id: Long = 0,
+    val createdAt: Instant,
+    val provider: String,
+    val model: String,
+    val question: String,
+    val answer: String,
 )

@@ -65,6 +65,9 @@ import com.cardiosuivi.app.ui.components.StatusDot
 import com.cardiosuivi.app.ui.theme.CardioColors
 import com.cardiosuivi.domain.model.Measurement
 import com.cardiosuivi.domain.model.MeasurementSource
+import com.cardiosuivi.domain.entry.EntryField
+import com.cardiosuivi.domain.entry.MeasurementEntry
+import com.cardiosuivi.domain.entry.localDateTime
 import com.cardiosuivi.domain.model.SessionPeriod
 import com.cardiosuivi.domain.model.SessionStatus
 import com.cardiosuivi.domain.stats.SessionStatistics
@@ -113,7 +116,7 @@ fun HistoryScreen(vm: AppViewModel, nav: NavHostController) {
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("${timeFmt.format(s.startedAt.atZone(vm.zone))} · ${s.period.label}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${timeFmt.format(s.startedAt.atZone(vm.zone))} · ${com.cardiosuivi.app.ui.session.periodText(s.period).replaceFirstChar { it.uppercase() }}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             st.primary?.let { p ->
                                 Row(verticalAlignment = Alignment.Bottom) {
                                     Text("${Fmt.d0(p.systolic)}/${Fmt.d0(p.diastolic)}", style = NumberStyles.medium)
@@ -145,14 +148,12 @@ fun SessionDetailScreen(vm: AppViewModel, id: Long, onBack: () -> Unit) {
     var editing by remember { mutableStateOf<Measurement?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
     var notes by rememberSaveable(s?.notes) { mutableStateOf(s?.notes ?: "") }
-    val timeFmt = DateTimeFormatter.ofPattern("HH:mm:ss")
-
     ScreenScaffold("Détail de la séance", onBack = onBack, actions = {
         IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Filled.Delete, "Supprimer la séance") }
     }) {
         if (s == null) { Text("Séance introuvable."); return@ScreenScaffold }
         val st = SessionStatistics.compute(s, settings.aggregation)
-        Text("${Fmt.dateLong(s.localDate).replaceFirstChar { it.uppercase() }} · ${s.period.label} · ${s.protocol.label} · ${s.arm.label}", style = MaterialTheme.typography.bodySmall)
+        Text("${Fmt.dateLong(s.localDate).replaceFirstChar { it.uppercase() }} · ${com.cardiosuivi.app.ui.session.periodText(s.period)} · ${s.protocol.label} · ${s.arm.label}", style = MaterialTheme.typography.bodySmall)
         HealthCard {
             CardHeader("Valeur de séance", Icons.Filled.MonitorHeart, Health.colors.systolic)
             st.primary?.let { p -> BpValue(Fmt.d0(p.systolic), Fmt.d0(p.diastolic), p.pulse?.let { Fmt.d0(it) }, style = NumberStyles.hero) }
@@ -166,8 +167,14 @@ fun SessionDetailScreen(vm: AppViewModel, id: Long, onBack: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("Mesure ${m.index}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("${m.index}. ${m.systolic}/${m.diastolic} mmHg" + (m.pulse?.let { " · $it /min" } ?: ""), style = NumberStyles.small)
-                        Text("${timeFmt.format(m.measuredAt.atZone(vm.zone))} · ${m.source.label}" + (m.ocrConfidence?.let { " · confiance OCR ${Fmt.pct(it)}" } ?: ""), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${m.systolic}/${m.diastolic} mmHg" + (m.pulse?.let { " · $it bpm" } ?: " · pouls non renseigné"), style = NumberStyles.small)
+                        val at = m.localDateTime(vm.zone)
+                        Text(
+                            "Mesurée à ${Fmt.timeSeconds(at)}" +
+                                (if (m.source != MeasurementSource.MANUAL) " · ${m.source.label}" else "") +
+                                (m.modifiedAt?.let { " · corrigée le ${Fmt.dateTimeLong(it.atZone(vm.zone))}" } ?: ""),
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     IconButton(onClick = { editing = m }) { Icon(Icons.Filled.Edit, "Corriger la mesure ${m.index}") }
                 }
@@ -197,20 +204,33 @@ fun SessionDetailScreen(vm: AppViewModel, id: Long, onBack: () -> Unit) {
         var sys by remember(m) { mutableStateOf(m.systolic.toString()) }
         var dia by remember(m) { mutableStateOf(m.diastolic.toString()) }
         var pul by remember(m) { mutableStateOf(m.pulse?.toString() ?: "") }
+        var errors by remember(m) { mutableStateOf<Map<EntryField, String>>(emptyMap()) }
+        // Mesure 1.0.x enregistrée sans pouls : on ne peut pas l'inventer, le pouls reste facultatif pour cette correction.
+        val legacyNoPulse = m.pulse == null
         AlertDialog(
             onDismissRequest = { editing = null },
             title = { Text("Corriger la mesure ${m.index}") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    NumberField("Systolique *", sys, { sys = it }, unit = "mmHg", isError = sys.toIntOrNull() == null, supporting = if (sys.toIntOrNull() == null) "Obligatoire" else null)
-                    NumberField("Diastolique *", dia, { dia = it }, unit = "mmHg", isError = dia.toIntOrNull() == null, supporting = if (dia.toIntOrNull() == null) "Obligatoire" else null)
-                    NumberField("Pouls (facultatif)", pul, { pul = it }, unit = "bpm")
+                    Text("Mesurée le ${Fmt.dateTimeLong(m.localDateTime(vm.zone))} : l'horodatage d'origine est conservé ; la date de correction est enregistrée à part.",
+                        style = MaterialTheme.typography.bodySmall)
+                    NumberField("SYS — Systolique *", sys, { sys = it; errors = emptyMap() }, unit = "mmHg", isError = errors[EntryField.SYS] != null, supporting = errors[EntryField.SYS])
+                    NumberField("DIA — Diastolique *", dia, { dia = it; errors = emptyMap() }, unit = "mmHg", isError = errors[EntryField.DIA] != null, supporting = errors[EntryField.DIA])
+                    NumberField(if (legacyNoPulse) "PUL — Fréquence cardiaque" else "PUL — Fréquence cardiaque *", pul, { pul = it; errors = emptyMap() }, unit = "bpm",
+                        isError = errors[EntryField.PUL] != null, supporting = errors[EntryField.PUL])
                 }
             },
             confirmButton = {
-                TextButton(enabled = sys.toIntOrNull() != null && dia.toIntOrNull() != null, onClick = {
-                    vm.updateMeasurement(m.copy(systolic = sys.toInt(), diastolic = dia.toInt(), pulse = pul.toIntOrNull(),
-                        source = if (m.source == MeasurementSource.MANUAL) MeasurementSource.MANUAL else MeasurementSource.OCR_CORRECTED))
+                TextButton(onClick = {
+                    val v = MeasurementEntry.validate(sys, dia, pul)
+                    val errs = if (legacyNoPulse && pul.isBlank()) v.errors - EntryField.PUL else v.errors
+                    if (errs.isNotEmpty() || v.systolic == null || v.diastolic == null) { errors = errs; return@TextButton }
+                    val newPulse = if (legacyNoPulse && pul.isBlank()) null else v.pulse
+                    val changed = v.systolic != m.systolic || v.diastolic != m.diastolic || newPulse != m.pulse
+                    if (changed) {
+                        vm.updateMeasurement(m.copy(systolic = v.systolic!!, diastolic = v.diastolic!!, pulse = newPulse, modifiedAt = java.time.Instant.now(),
+                            source = if (m.source == MeasurementSource.MANUAL) MeasurementSource.MANUAL else MeasurementSource.OCR_CORRECTED))
+                    }
                     editing = null
                 }) { Text("Enregistrer") }
             },

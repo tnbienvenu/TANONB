@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.QuestionAnswer
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Summarize
+import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.ui.Alignment
@@ -138,7 +139,7 @@ fun AnalysisScreen(vm: AppViewModel, nav: NavHostController) {
     val c = Health.colors
 
     ScreenScaffold("Analyse IA", onBack = null, subtitle = "Rapport cardiovasculaire") {
-        Text("Les cartes 1 à 8 sont calculées sur ce téléphone par un moteur déterministe (calculs vérifiables, sans IA et sans connexion). L'interprétation par une IA est séparée et facultative.",
+        Text("Les cartes 1 à 9 sont calculées sur ce téléphone par un moteur déterministe (calculs vérifiables, sans IA et sans connexion). L'interprétation par une IA est séparée et facultative.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         val a = analysis
         if (a == null) { Text("Calcul en cours…"); return@ScreenScaffold }
@@ -174,14 +175,32 @@ fun AnalysisScreen(vm: AppViewModel, nav: NavHostController) {
             LocalBadge()
             ComponentStats("Diastolique", r30.overall.diastolic.mean, r30.overall.diastolic.min, r30.overall.diastolic.max, r30.trend?.diastolicSlopePerWeek, r30.variability.diastolicSdBetweenSessions, MedicalThresholds.HOME_HYPERTENSION.diastolic, profile.target?.diastolic, r30.sessionCount)
         }
-        ReportCard(5, "Comparaison matin / soir", Icons.Filled.WbSunny, c.morning, 4) {
+        ReportCard(5, "Fréquence cardiaque", Icons.Filled.MonitorHeart, c.pulse, 4) {
+            LocalBadge()
+            val p = r30.overall.pulse
+            if (p.n == 0 || p.mean == null) Text("Aucune fréquence cardiaque enregistrée sur 30 jours.", style = MaterialTheme.typography.bodyMedium)
+            else {
+                val dt = java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm")
+                TimeSeriesChart(
+                    listOf(ChartSeries("Fréquence cardiaque", c.pulse, r30.sessionValues.mapNotNull { v -> v.primary.pulse?.let { ChartPoint(v.session.startedAt.toEpochMilli(), it, "${Fmt.d0(it)} bpm — ${dt.format(v.session.startedAt.atZone(vm.zone))}") } })),
+                    height = 130,
+                )
+                KeyValue("Moyenne (${p.n} séance(s))", "${Fmt.d0(p.mean)} bpm")
+                KeyValue("Minimum – maximum", "${p.min ?: "—"} – ${p.max ?: "—"} bpm")
+                KeyValue("Écart-type entre séances", p.sd?.let { "${Fmt.d1(it)} bpm" } ?: "—")
+                val me = r30.morningVsEvening
+                if (me.a.pulse.mean != null && me.b.pulse.mean != null) KeyValue("Matin / soir", "${Fmt.d0(me.a.pulse.mean)} / ${Fmt.d0(me.b.pulse.mean)} bpm")
+                Text("Valeurs descriptives (valeur de séance) ; leur interprétation relève de votre médecin.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        ReportCard(6, "Comparaison matin / soir", Icons.Filled.WbSunny, c.morning, 4) {
             LocalBadge()
             val me = r30.morningVsEvening
             KeyValue("Matin (${me.a.sessionCount} séance(s))", "${Fmt.bp(me.a.systolic.mean, me.a.diastolic.mean)} mmHg")
             KeyValue("Soir (${me.b.sessionCount} séance(s))", "${Fmt.bp(me.b.systolic.mean, me.b.diastolic.mean)} mmHg")
             byTitle("Comparaison matin").forEach { FindingItem(it) }
         }
-        ReportCard(6, "Points de vigilance", Icons.Filled.Warning, c.attention, 5) {
+        ReportCard(7, "Points de vigilance", Icons.Filled.Warning, c.attention, 5) {
             LocalBadge()
             // Constats déjà présentés dans la synthèse (données, moyennes, objectif) : non répétés ici.
             val inSynthesis = (byTitle("Données disponibles") + byTitle("Moyenne sur") + byTitle("Objectif personnel")).toSet()
@@ -192,7 +211,7 @@ fun AnalysisScreen(vm: AppViewModel, nav: NavHostController) {
             other.sortedByDescending { it.level.ordinal }.forEach { AlertCard(it) }
             watch.distinct().forEachIndexed { i, f -> if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant); FindingItem(f) }
         }
-        ReportCard(7, "Recommandations générales", Icons.Filled.Lightbulb, c.favorable, 6) {
+        ReportCard(8, "Recommandations générales", Icons.Filled.Lightbulb, c.favorable, 6) {
             Text("Conseils généraux de mesure (non personnalisés, sans modification de traitement) :", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             listOf(
                 "Mesurez dans les mêmes conditions, matin et soir, selon votre calendrier.",
@@ -205,7 +224,7 @@ fun AnalysisScreen(vm: AppViewModel, nav: NavHostController) {
             a.last7.completeness?.let { cp -> if (cp.missedSlots > 0) Text("Cette semaine : ${cp.missedSlots} séance(s) programmée(s) non réalisée(s).", style = MaterialTheme.typography.bodySmall, color = c.attention) }
             Text("Réf. : recommandations de mesure à domicile (ESH 2023, ESC 2024).", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        ReportCard(8, "Questions pour le cardiologue", Icons.Filled.QuestionAnswer, MaterialTheme.colorScheme.tertiary, 6) {
+        ReportCard(9, "Questions pour le médecin", Icons.Filled.QuestionAnswer, MaterialTheme.colorScheme.tertiary, 6) {
             LocalBadge()
             if (a.pointsToDiscuss.isEmpty()) Text("Aucun point saillant détecté automatiquement.", style = MaterialTheme.typography.bodyMedium)
             a.pointsToDiscuss.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
@@ -222,7 +241,15 @@ fun AnalysisScreen(vm: AppViewModel, nav: NavHostController) {
                     else "Aucune IA n'est configurée : seules les analyses locales ci-dessus sont disponibles. L'assistant répond aussi aux questions fréquentes sans connexion.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                Text("Aucune interprétation n'est affichée tant que vous n'avez pas posé de question.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val last by vm.latestAi.collectAsState()
+                val la = last
+                if (la == null) Text("Aucune interprétation IA enregistrée : aucune n'est affichée tant que vous n'avez pas posé de question à une IA.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else {
+                    Text("Dernière interprétation : ${Fmt.dateTimeLong(la.createdAt.atZone(vm.zone))} · ${la.provider} (${la.model})", style = MaterialTheme.typography.labelMedium)
+                    Text("Question : ${la.question}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(la.answer, style = MaterialTheme.typography.bodyMedium)
+                    Text("Texte produit par une IA à partir de vos statistiques : il ne remplace ni un diagnostic ni un avis médical.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 PrimaryButton("Ouvrir l'assistant IA", { nav.navigate(Routes.ASSISTANT) }, icon = Icons.Filled.AutoAwesome, color = MaterialTheme.colorScheme.tertiary)
             }
         }
@@ -330,10 +357,8 @@ fun HbpmScreen(vm: AppViewModel, nav: NavHostController) {
                 result.classification?.let { Text(it.label, fontWeight = FontWeight.SemiBold) }
                 result.days.forEach { d -> KeyValue(Fmt.date(d.date) + if (d.excluded) " (écarté)" else "", "matin ${d.morningSessions} · soir ${d.eveningSessions} · ${d.readings} mesures") }
                 result.notes.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { nav.navigate(Routes.session(SessionPeriod.MORNING, ProtocolType.STANDARDIZED_HBPM)) }) { Text("Séance du matin") }
-                    Button(onClick = { nav.navigate(Routes.session(SessionPeriod.EVENING, ProtocolType.STANDARDIZED_HBPM)) }) { Text("Séance du soir") }
-                }
+                Button(onClick = { nav.navigate(Routes.session(null, ProtocolType.STANDARDIZED_HBPM)) }) { Text("Commencer une séance d'automesure") }
+                Text("Le moment (matin ou soir) est déterminé automatiquement d'après l'heure de la mesure.", style = MaterialTheme.typography.labelSmall)
                 TextButton(onClick = { confirmReset = true }) { Text("Terminer / réinitialiser le protocole") }
             }
         }

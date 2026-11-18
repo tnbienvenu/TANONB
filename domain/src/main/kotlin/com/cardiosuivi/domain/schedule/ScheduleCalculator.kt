@@ -93,14 +93,21 @@ object ScheduleCalculator {
     }
 
     /**
-     * Attribue un moment (matin/soir) à une heure : avant le milieu entre l'heure du matin
-     * et celle du soir → matin ; sinon → soir.
+     * Cohérence entre rappels et plages matin/soir : une séance commencée à l'heure du rappel, ou jusqu'à la fin du délai
+     * de tolérance, doit être classée dans la période du rappel ; sinon elle ne satisferait pas le créneau.
+     * Retourne la liste des incohérences à signaler (vide si tout est cohérent).
      */
-    fun periodForTime(time: LocalTime, config: ReminderConfig): SessionPeriod {
-        val m = config.morningTime.toSecondOfDay()
-        val e = config.eveningTime.toSecondOfDay()
-        val mid = if (e > m) (m + e) / 2 else 13 * 3600
-        return if (time.toSecondOfDay() < mid) SessionPeriod.MORNING else SessionPeriod.EVENING
+    fun windowWarnings(config: ReminderConfig, windows: com.cardiosuivi.domain.model.PeriodWindows): List<String> {
+        val out = mutableListOf<String>()
+        fun check(on: Boolean, t: LocalTime, p: SessionPeriod, name: String) {
+            if (!on) return
+            if (windows.periodOf(t) != p) out += "Le rappel du $name ($t) est en dehors de la plage du $name."
+            else if (windows.periodOf(t.plusMinutes(config.missedGraceMinutes.toLong())) != p)
+                out += "Une séance du $name commencée jusqu'à ${config.missedGraceMinutes / 60} h après le rappel ($t) pourrait sortir de la plage du $name."
+        }
+        check(config.morningEnabled, config.morningTime, SessionPeriod.MORNING, "matin")
+        check(config.eveningEnabled, config.eveningTime, SessionPeriod.EVENING, "soir")
+        return out
     }
 
     /**

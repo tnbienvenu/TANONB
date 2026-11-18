@@ -97,8 +97,8 @@ object MedicalThresholds {
 }
 
 /**
- * Bornes de PLAUSIBILITÉ TECHNIQUE (et non médicales) pour la validation de saisie et de l'OCR :
- * elles servent uniquement à détecter une erreur de lecture ou de frappe.
+ * Bornes de PLAUSIBILITÉ TECHNIQUE (et non médicales) pour la validation de la saisie :
+ * elles servent uniquement à détecter une erreur de frappe.
  * Une valeur hors bornes reste enregistrable après confirmation explicite.
  */
 object PlausibilityBounds {

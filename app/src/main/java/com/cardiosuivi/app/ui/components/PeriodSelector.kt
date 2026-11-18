@@ -31,7 +31,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 
 enum class PeriodPreset(val label: String, val days: Long?) {
-    D7("7 jours", 7), D30("30 jours", 30), D90("90 jours", 90), YEAR("Année", 365), ALL("Tout", null), CUSTOM("Personnalisée", null)
+    D7("7 jours", 7), D30("30 jours", 30), D90("90 jours", 90), YEAR("1 an", 365), ALL("Tout", null), CUSTOM("Personnalisée", null)
 }
 
 data class PeriodChoice(val preset: PeriodPreset, val customFrom: LocalDate? = null, val customTo: LocalDate? = null) {

@@ -1,5 +1,5 @@
 // Module « domaine » : Kotlin pur, sans dépendance Android.
-// Contient les règles métier testables : statistiques, alertes, OCR (analyse du texte),
+// Contient les règles métier testables : statistiques, alertes,
 // planification des rappels, analyse cardiovasculaire, export CSV, chiffrement des sauvegardes.
 plugins {
     alias(libs.plugins.kotlin.jvm)

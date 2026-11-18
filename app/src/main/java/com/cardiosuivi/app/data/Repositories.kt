@@ -76,6 +76,14 @@ class ProfileRepository(private val db: AppDatabase) {
     suspend fun deleteObservation(id: Long) = dao.deleteObservation(id)
 }
 
+/** Interprétations IA conservées (base chiffrée). */
+class AiAnalysisRepository(private val db: AppDatabase) {
+    private val dao = db.aiAnalysisDao()
+    fun observeLatest(): Flow<com.cardiosuivi.domain.model.AiAnalysisRecord?> = dao.observeLatest().map { it?.toDomain() }
+    suspend fun getAll(): List<com.cardiosuivi.domain.model.AiAnalysisRecord> = dao.getAll().map { it.toDomain() }
+    suspend fun save(r: com.cardiosuivi.domain.model.AiAnalysisRecord): Long = dao.insert(r.toEntity().copy(id = 0))
+}
+
 /** Opérations globales (restauration, suppression des données). */
 class DataMaintenance(private val db: AppDatabase) {
     suspend fun replaceAll(
@@ -83,6 +91,7 @@ class DataMaintenance(private val db: AppDatabase) {
         treatments: List<Treatment>,
         observations: List<Observation>,
         sessions: List<MeasurementSession>,
+        aiAnalyses: List<com.cardiosuivi.domain.model.AiAnalysisRecord> = emptyList(),
     ) {
         db.withTransaction {
             wipeTables()
@@ -92,6 +101,7 @@ class DataMaintenance(private val db: AppDatabase) {
             observations.forEach { p.upsertObservation(it.toEntity().copy(id = 0)) }
             val repo = SessionRepository(db)
             sessions.forEach { repo.insertFull(it) }
+            aiAnalyses.forEach { db.aiAnalysisDao().insert(it.toEntity().copy(id = 0)) }
         }
     }
 
@@ -103,5 +113,6 @@ class DataMaintenance(private val db: AppDatabase) {
         db.profileDao().deleteAllTreatments()
         db.profileDao().deleteAllObservations()
         db.reminderEventDao().deleteAll()
+        db.aiAnalysisDao().deleteAll()
     }
 }

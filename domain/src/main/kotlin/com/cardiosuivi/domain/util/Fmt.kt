@@ -18,4 +18,13 @@ object Fmt {
     private val DATE_LONG = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", LOCALE)
     fun date(d: LocalDate): String = d.format(DATE)
     fun dateLong(d: LocalDate): String = d.format(DATE_LONG)
+
+    private val TIME_S = DateTimeFormatter.ofPattern("HH:mm:ss", LOCALE)
+    private val TIME = DateTimeFormatter.ofPattern("HH:mm", LOCALE)
+    /** « 07:05:12 » */
+    fun timeSeconds(t: java.time.temporal.TemporalAccessor): String = TIME_S.format(t)
+    /** « 07:05 » */
+    fun time(t: java.time.temporal.TemporalAccessor): String = TIME.format(t)
+    /** « mardi 18 novembre 2026 à 07:05:12 » */
+    fun dateTimeLong(t: java.time.ZonedDateTime): String = "${dateLong(t.toLocalDate())} à ${timeSeconds(t)}"
 }

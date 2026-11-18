@@ -39,6 +39,8 @@ data class AppSettings(
     val sharing: AiSharingOptions = AiSharingOptions(),
     val hbpmStartDate: LocalDate? = null,
     val lastRescheduleAt: Long = 0,
+    /** Plages horaires de classement automatique matin/soir (1.1.0). */
+    val windows: com.cardiosuivi.domain.model.PeriodWindows = com.cardiosuivi.domain.model.PeriodWindows(),
 ) {
     fun consentFor(p: AiProvider): Long = when (p) {
         AiProvider.ANTHROPIC -> anthropicConsentAt
@@ -82,6 +84,10 @@ class SettingsRepository(private val context: Context) {
         val shareSessions = booleanPreferencesKey("share_sessions")
         val hbpmStart = stringPreferencesKey("hbpm_start")
         val lastReschedule = longPreferencesKey("last_reschedule")
+        val winMorningStart = stringPreferencesKey("win_morning_start")
+        val winMorningEnd = stringPreferencesKey("win_morning_end")
+        val winEveningStart = stringPreferencesKey("win_evening_start")
+        val winEveningEnd = stringPreferencesKey("win_evening_end")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { it.toSettings() }
@@ -123,7 +129,25 @@ class SettingsRepository(private val context: Context) {
             ),
             hbpmStartDate = this[K.hbpmStart]?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
             lastRescheduleAt = this[K.lastReschedule] ?: 0,
+            windows = run {
+                fun t(k: Preferences.Key<String>, def: LocalTime) = this[k]?.let { runCatching { LocalTime.parse(it) }.getOrNull() } ?: def
+                val w = com.cardiosuivi.domain.model.PeriodWindows(
+                    t(K.winMorningStart, d.windows.morningStart), t(K.winMorningEnd, d.windows.morningEnd),
+                    t(K.winEveningStart, d.windows.eveningStart), t(K.winEveningEnd, d.windows.eveningEnd),
+                )
+                if (w.isValid) w else d.windows
+            },
         )
+    }
+
+    /** Enregistre les plages matin/soir ; refusées (false) si elles se chevauchent ou sont vides. */
+    suspend fun setWindows(w: com.cardiosuivi.domain.model.PeriodWindows): Boolean {
+        if (!w.isValid) return false
+        context.dataStore.edit {
+            it[K.winMorningStart] = w.morningStart.toString(); it[K.winMorningEnd] = w.morningEnd.toString()
+            it[K.winEveningStart] = w.eveningStart.toString(); it[K.winEveningEnd] = w.eveningEnd.toString()
+        }
+        return true
     }
 
     suspend fun setOnboardingAccepted() = context.dataStore.edit { it[K.onboarding] = true }
@@ -190,6 +214,10 @@ class SettingsRepository(private val context: Context) {
             "protocol.perSession" to s.measurementsPerSession.toString(),
             "aggregation" to s.aggregation.name,
             "emergencyNumber" to s.emergencyNumber,
+            "windows.morningStart" to s.windows.morningStart.toString(),
+            "windows.morningEnd" to s.windows.morningEnd.toString(),
+            "windows.eveningStart" to s.windows.eveningStart.toString(),
+            "windows.eveningEnd" to s.windows.eveningEnd.toString(),
         )
     }
 
@@ -210,6 +238,10 @@ class SettingsRepository(private val context: Context) {
         setProtocol(m["protocol.interval"]?.toIntOrNull() ?: cur.intervalSeconds, m["protocol.perSession"]?.toIntOrNull() ?: cur.measurementsPerSession)
         m["aggregation"]?.let { setAggregation(enumOr(it, cur.aggregation)) }
         m["emergencyNumber"]?.let { setEmergencyNumber(it) }
+        fun t(k: String, def: LocalTime) = m[k]?.let { runCatching { LocalTime.parse(it) }.getOrNull() } ?: def
+        val w = cur.windows
+        setWindows(com.cardiosuivi.domain.model.PeriodWindows(t("windows.morningStart", w.morningStart), t("windows.morningEnd", w.morningEnd),
+            t("windows.eveningStart", w.eveningStart), t("windows.eveningEnd", w.eveningEnd)))
     }
 
     suspend fun resetAll() = context.dataStore.edit { it.clear() }

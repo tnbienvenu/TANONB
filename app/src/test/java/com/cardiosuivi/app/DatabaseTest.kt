@@ -120,3 +120,34 @@ class DatabaseTest {
         assertEquals("", profiles.getProfile().displayName)
     }
 }
+
+/** Horodatage 1.1.0 : fuseau, décalage et date de correction persistés ; horodatage initial inchangé par une correction. */
+@RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(application = android.app.Application::class)
+class TimestampPersistenceTest {
+    @Test
+    fun correctionKeepsMeasuredAtAndStoresModifiedAt() = runTest {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        val db = Room.inMemoryDatabaseBuilder(ctx, AppDatabase::class.java).allowMainThreadQueries().build()
+        val repo = SessionRepository(db)
+        val at = Instant.parse("2026-11-18T06:05:12.345Z")
+        val id = repo.createSession(MeasurementSession(startedAt = at, period = SessionPeriod.MORNING, status = SessionStatus.IN_PROGRESS,
+            localDate = LocalDate.of(2026, 11, 18), arm = com.cardiosuivi.domain.model.Arm.LEFT))
+        val mid = repo.addMeasurement(id, Measurement(index = 1, systolic = 128, diastolic = 82, pulse = 72, measuredAt = at,
+            source = MeasurementSource.MANUAL, zoneId = "Europe/Paris", utcOffsetSeconds = 3600))
+        // Simple consultation : rien ne change.
+        val read1 = repo.get(id)!!.measurements.single()
+        assertEquals(at, read1.measuredAt); assertNull(read1.modifiedAt)
+        assertEquals("Europe/Paris", read1.zoneId); assertEquals(3600, read1.utcOffsetSeconds)
+        // Correction.
+        val fix = Instant.parse("2026-11-18T06:20:00Z")
+        repo.updateMeasurement(read1.copy(systolic = 126, modifiedAt = fix))
+        val read2 = repo.get(id)!!.measurements.single()
+        assertEquals(mid, read2.id)
+        assertEquals(126, read2.systolic)
+        assertEquals(at, read2.measuredAt)
+        assertEquals(fix, read2.modifiedAt)
+        assertEquals(com.cardiosuivi.domain.model.Arm.LEFT, repo.get(id)!!.arm)
+        db.close()
+    }
+}

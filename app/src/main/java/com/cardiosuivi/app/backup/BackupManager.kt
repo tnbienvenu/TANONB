@@ -55,10 +55,12 @@ class BackupManager(private val context: Context, private val c: AppContainer) {
                 BackupSession(
                     s.startedAt.toEpochMilli(), s.completedAt?.toEpochMilli(), s.localDate.toString(), s.period.name, s.status.name,
                     s.protocol.name, s.plannedMeasurements, s.arm.name, s.symptoms.map { it.name }, s.notes,
-                    s.measurements.map { m -> BackupMeasurement(m.index, m.systolic, m.diastolic, m.pulse, m.measuredAt.toEpochMilli(), m.source.name, m.ocrConfidence, m.note) },
+                    s.measurements.map { m -> BackupMeasurement(m.index, m.systolic, m.diastolic, m.pulse, m.measuredAt.toEpochMilli(), m.source.name, m.ocrConfidence, m.note,
+                        m.modifiedAt?.toEpochMilli(), m.zoneId, m.utcOffsetSeconds) },
                 )
             },
             settings = c.settings.exportable(),
+            aiAnalyses = c.aiAnalyses.getAll().map { com.cardiosuivi.domain.backup.BackupAiAnalysis(it.createdAt.toEpochMilli(), it.provider, it.model, it.question, it.answer) },
         )
     }
 
@@ -118,11 +120,13 @@ class BackupManager(private val context: Context, private val c: AppContainer) {
                         index = m.index, systolic = m.systolic, diastolic = m.diastolic, pulse = m.pulse,
                         measuredAt = Instant.ofEpochMilli(m.measuredAtEpochMs), source = enumOr(m.source, MeasurementSource.MANUAL),
                         ocrConfidence = m.ocrConfidence, note = m.note,
+                        modifiedAt = m.modifiedAtEpochMs?.let { Instant.ofEpochMilli(it) }, zoneId = m.zoneId, utcOffsetSeconds = m.utcOffsetSeconds,
                     )
                 },
             )
         }
-        c.maintenance.replaceAll(profile, treatments, observations, sessions)
+        val ai = p.aiAnalyses.map { com.cardiosuivi.domain.model.AiAnalysisRecord(createdAt = Instant.ofEpochMilli(it.createdAtEpochMs), provider = it.provider, model = it.model, question = it.question, answer = it.answer) }
+        c.maintenance.replaceAll(profile, treatments, observations, sessions, ai)
         c.settings.importSettings(p.settings)
         c.reminderScheduler.rescheduleAll(c.settings.current().reminders)
     }

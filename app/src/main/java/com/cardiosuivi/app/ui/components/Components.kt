@@ -520,7 +520,7 @@ fun EmptyState(text: String, icon: ImageVector = Icons.Filled.Info, action: (@Co
 fun StepProgress(done: Int, total: Int, current: Int, modifier: Modifier = Modifier) {
     val c = Health.colors
     Column(modifier.semantics(mergeDescendants = true) { contentDescription = "Mesure $current sur $total, $done enregistrée(s)" }, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("MESURE ${current.coerceAtMost(total)} / $total", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        Text("MESURE ${current.coerceAtMost(total)} SUR $total", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             repeat(total) { i ->
                 val fill = when {

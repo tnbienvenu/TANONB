@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,6 +76,7 @@ import com.cardiosuivi.domain.alerts.AlertLevel
 import com.cardiosuivi.domain.analysis.FindingSeverity
 import com.cardiosuivi.domain.stats.SessionStatistics
 import com.cardiosuivi.domain.util.Fmt
+import com.cardiosuivi.domain.entry.localDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 
@@ -131,14 +133,14 @@ fun DashboardScreen(vm: AppViewModel, nav: NavHostController) {
         val lastStats = report?.lastSessionStats
         Appear(1) {
             HealthCard(onClick = last?.let { { nav.navigate(Routes.sessionDetail(it.id)) } }) {
-                CardHeader("Dernière tension", Icons.Filled.Favorite, c.systolic,
-                    trailing = last?.let { l -> l.measurements.maxByOrNull { it.index }?.let { timeFmt.format(it.measuredAt.atZone(vm.zone)) } }, chevron = last != null)
+                CardHeader("Dernière séance", Icons.Filled.Favorite, c.systolic,
+                    trailing = last?.let { l -> l.measurements.maxByOrNull { it.index }?.let { timeFmt.format(it.localDateTime(vm.zone)) } }, chevron = last != null)
                 if (last == null || lastStats?.primary == null) {
                     Text("Aucune séance validée pour l'instant.", style = MaterialTheme.typography.bodyLarge)
                     Text("Vos dernières valeurs apparaîtront ici après votre première séance de mesures.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     val m = last.measurements.maxBy { it.index }
-                    Text("Dernière mesure · ${Fmt.dateLong(last.localDate)} à ${timeFmt.format(m.measuredAt.atZone(vm.zone))} · ${last.period.label}",
+                    Text("Dernière mesure · ${Fmt.dateTimeLong(m.localDateTime(vm.zone))} · ${com.cardiosuivi.app.ui.session.periodText(last.period)}",
                         style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     BpValue(m.systolic.toString(), m.diastolic.toString(), m.pulse?.toString() ?: "—", style = NumberStyles.hero)
                     val p = lastStats.primary!!
@@ -146,7 +148,7 @@ fun DashboardScreen(vm: AppViewModel, nav: NavHostController) {
                         Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
-                        Text("Moyenne de la séance : ${Fmt.d0(p.systolic)}/${Fmt.d0(p.diastolic)} mmHg" + (p.pulse?.let { " · ${Fmt.d0(it)} bpm" } ?: ""),
+                        Text("Moyenne de référence de la séance : ${Fmt.d0(p.systolic)}/${Fmt.d0(p.diastolic)} mmHg" + (p.pulse?.let { " · ${Fmt.d0(it)} bpm" } ?: ""),
                             style = MaterialTheme.typography.titleSmall)
                         Text("${last.measurements.size} mesure(s) · ${settings.aggregation.label}${if (lastStats.methodFallback) " (moyenne des mesures disponibles)" else ""}",
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -274,7 +276,17 @@ fun DashboardScreen(vm: AppViewModel, nav: NavHostController) {
                     Text(key.title, style = MaterialTheme.typography.titleSmall)
                     Text(key.text, style = MaterialTheme.typography.bodyMedium, maxLines = 4)
                 }
-                if (report.pointsToDiscuss.isNotEmpty()) Text("${report.pointsToDiscuss.size} point(s) à discuter avec votre cardiologue.", style = MaterialTheme.typography.bodySmall, color = c.attention)
+                Text("Calculée le ${Fmt.dateTimeLong(vm.now().withNano(0))} à partir des séances enregistrées.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (report.pointsToDiscuss.isNotEmpty()) Text("${report.pointsToDiscuss.size} point(s) à discuter avec votre médecin.", style = MaterialTheme.typography.bodySmall, color = c.attention)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                val ai by vm.latestAi.collectAsState()
+                val la = ai
+                if (la == null) Text("Interprétation IA : aucune enregistrée.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else {
+                    StatusBadge("Générée par une IA", MaterialTheme.colorScheme.tertiary, Icons.Filled.AutoAwesome)
+                    Text("Dernière interprétation IA : ${Fmt.dateTimeLong(la.createdAt.atZone(vm.zone))} (${la.provider})", style = MaterialTheme.typography.labelMedium)
+                    Text(la.answer, style = MaterialTheme.typography.bodySmall, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                }
                 SecondaryButton("Consulter mon analyse", { nav.navigateTab(Routes.ANALYSIS) })
             }
         }

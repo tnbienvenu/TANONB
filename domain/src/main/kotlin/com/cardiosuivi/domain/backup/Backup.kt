@@ -17,6 +17,8 @@ import javax.crypto.spec.SecretKeySpec
 data class BackupMeasurement(
     val index: Int, val systolic: Int, val diastolic: Int, val pulse: Int?,
     val measuredAtEpochMs: Long, val source: String, val ocrConfidence: Double?, val note: String,
+    // Format 2 (1.1.0) : champs facultatifs, absents des sauvegardes 1.0.x.
+    val modifiedAtEpochMs: Long? = null, val zoneId: String? = null, val utcOffsetSeconds: Int? = null,
 )
 
 @Serializable
@@ -41,6 +43,10 @@ data class BackupTreatment(
 @Serializable
 data class BackupObservation(val date: String, val text: String)
 
+/** Interprétation générée par une IA et conservée (format 2). */
+@Serializable
+data class BackupAiAnalysis(val createdAtEpochMs: Long, val provider: String, val model: String, val question: String, val answer: String)
+
 @Serializable
 data class BackupPayload(
     val formatVersion: Int = CURRENT_FORMAT,
@@ -52,8 +58,11 @@ data class BackupPayload(
     val sessions: List<BackupSession>,
     /** Paramètres non sensibles (rappels, méthode d'agrégation…). Les clés d'API ne sont JAMAIS sauvegardées. */
     val settings: Map<String, String>,
+    /** Format 2 : interprétations IA conservées (liste vide pour une sauvegarde 1.0.x). */
+    val aiAnalyses: List<BackupAiAnalysis> = emptyList(),
 ) {
-    companion object { const val CURRENT_FORMAT = 1 }
+    /** 1 = CardioSuivi 1.0.x ; 2 = 1.1.0 (champs ajoutés, tous facultatifs : une sauvegarde 1.0.x reste restaurable). */
+    companion object { const val CURRENT_FORMAT = 2 }
 }
 
 class BackupException(message: String, cause: Throwable? = null) : Exception(message, cause)

@@ -160,6 +160,8 @@ fun RemindersScreen(vm: AppViewModel, nav: NavHostController) {
     val settings by vm.settings.collectAsState()
     val r = settings.reminders
     var editing by remember { mutableStateOf<SessionPeriod?>(null) }
+    var editingWindow by remember { mutableStateOf<String?>(null) }
+    var windowError by remember { mutableStateOf<String?>(null) }
     var interval by remember(settings.intervalSeconds) { mutableIntStateOf(settings.intervalSeconds) }
     var perSession by remember(settings.measurementsPerSession) { mutableIntStateOf(settings.measurementsPerSession) }
     val context = LocalContext.current
@@ -192,6 +194,28 @@ fun RemindersScreen(vm: AppViewModel, nav: NavHostController) {
             Text("Délai avant de considérer une séance comme manquée", style = MaterialTheme.typography.labelLarge)
             ChoiceChips(listOf(60, 120, 180, 240), r.missedGraceMinutes, { "${it / 60} h" }) { vm.setReminders(r.copy(missedGraceMinutes = it)) }
         }
+        SectionCard("Plages matin et soir") {
+            val w = settings.windows
+            Text("Le moment d'une séance est déduit automatiquement de l'heure de sa première mesure. Une séance hors de ces plages n'est classée ni matin ni soir.",
+                style = MaterialTheme.typography.bodySmall)
+            KeyValue("Matin", "de ${w.morningStart} à ${w.morningEnd}")
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(onClick = { editingWindow = "morningStart" }) { Text("Début matin") }
+                TextButton(onClick = { editingWindow = "morningEnd" }) { Text("Fin matin") }
+            }
+            KeyValue("Soir", "de ${w.eveningStart} à ${if (w.eveningEnd == LocalTime.MIDNIGHT) "minuit" else w.eveningEnd.toString()}")
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(onClick = { editingWindow = "eveningStart" }) { Text("Début soir") }
+                TextButton(onClick = { editingWindow = "eveningEnd" }) { Text("Fin soir") }
+            }
+            com.cardiosuivi.domain.schedule.ScheduleCalculator.windowWarnings(r, w).forEach {
+                Text("⚠ $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+            windowError?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+            Text("Valeurs initiales : matin 05:00–12:00, soir 17:00–minuit (réglages d'organisation, non médicaux). Les séances déjà enregistrées ne sont pas reclassées.",
+                style = MaterialTheme.typography.labelSmall)
+            TextButton(onClick = { vm.setWindows(com.cardiosuivi.domain.model.PeriodWindows()) { ok -> windowError = if (ok) null else "Plages invalides." } }) { Text("Rétablir les valeurs initiales") }
+        }
         SectionCard("Protocole de séance") {
             Text("Intervalle entre deux mesures", style = MaterialTheme.typography.labelLarge)
             ChoiceChips(listOf(60, 90, 120), interval, { "${it} s" }) { interval = it; vm.setProtocol(it, perSession) }
@@ -221,6 +245,25 @@ fun RemindersScreen(vm: AppViewModel, nav: NavHostController) {
             dismissButton = { TextButton(onClick = { editing = null }) { Text("Annuler") } },
         )
     }
+    editingWindow?.let { key ->
+        val w = settings.windows
+        val init = when (key) { "morningStart" -> w.morningStart; "morningEnd" -> w.morningEnd; "eveningStart" -> w.eveningStart; else -> w.eveningEnd }
+        val state = rememberTimePickerState(init.hour, init.minute, is24Hour = true)
+        AlertDialog(
+            onDismissRequest = { editingWindow = null },
+            title = { Text(when (key) { "morningStart" -> "Début du matin"; "morningEnd" -> "Fin du matin"; "eveningStart" -> "Début du soir"; else -> "Fin du soir (00:00 = minuit)" }) },
+            text = { TimePicker(state) },
+            confirmButton = {
+                TextButton(onClick = {
+                    val t = LocalTime.of(state.hour, state.minute)
+                    val nw = when (key) { "morningStart" -> w.copy(morningStart = t); "morningEnd" -> w.copy(morningEnd = t); "eveningStart" -> w.copy(eveningStart = t); else -> w.copy(eveningEnd = t) }
+                    vm.setWindows(nw) { ok -> windowError = if (ok) null else "Plages refusées : elles ne doivent ni se chevaucher ni être vides." }
+                    editingWindow = null
+                }) { Text("Valider") }
+            },
+            dismissButton = { TextButton(onClick = { editingWindow = null }) { Text("Annuler") } },
+        )
+    }
 }
 
 @Composable
@@ -243,14 +286,12 @@ fun PermissionsScreen(vm: AppViewModel, onBack: () -> Unit) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(lifecycle) { lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) { tick++ } }
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
 
     @Suppress("UNUSED_EXPRESSION") tick
     val notifOk = Notifications.canPost(context)
     val exactOk = vm.c.reminderScheduler.canScheduleExact()
     val pm = context.getSystemService(PowerManager::class.java)
     val batteryOk = pm.isIgnoringBatteryOptimizations(context.packageName)
-    val cameraOk = androidx.core.content.ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
     ScreenScaffold("Diagnostic des autorisations", onBack = onBack) {
         SectionCard("Rappels") {
@@ -274,11 +315,6 @@ fun PermissionsScreen(vm: AppViewModel, onBack: () -> Unit) {
             KeyValue("Prochains rappels", vm.nextSlots(2).joinToString(" ; ") { "${Fmt.date(it.date)} ${it.time}" }.ifBlank { "Aucun" })
             Text("Les rappels sont reprogrammés automatiquement après redémarrage du téléphone, mise à jour de l'application ou changement d'heure.", style = MaterialTheme.typography.labelSmall)
             OutlinedButton(onClick = { vm.setReminders(settings.reminders) }) { Text("Reprogrammer maintenant") }
-        }
-        SectionCard("Appareil photo") {
-            StatusLine(cameraOk, "Caméra", if (cameraOk) "Autorisée." else "Non autorisée : l'import de photo et la saisie manuelle restent possibles.") {
-                if (!cameraOk) TextButton(onClick = { cameraLauncher.launch(Manifest.permission.CAMERA) }) { Text("Autoriser") }
-            }
         }
         SectionCard("Système") {
             KeyValue("Android", "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")

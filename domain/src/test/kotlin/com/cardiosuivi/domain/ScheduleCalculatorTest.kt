@@ -59,9 +59,10 @@ class ScheduleCalculatorTest {
     }
 
     @Test
-    fun periodForTimeUsesMidpoint() {
-        assertEquals(SessionPeriod.MORNING, ScheduleCalculator.periodForTime(LocalTime.of(12, 59), config))
-        assertEquals(SessionPeriod.EVENING, ScheduleCalculator.periodForTime(LocalTime.of(13, 0), config))
+    fun defaultWindowsCoverDefaultRemindersAndGrace() {
+        assertEquals(emptyList<String>(), ScheduleCalculator.windowWarnings(config, com.cardiosuivi.domain.model.PeriodWindows()))
+        val late = config.copy(eveningTime = LocalTime.of(22, 30))
+        assertEquals(1, ScheduleCalculator.windowWarnings(late, com.cardiosuivi.domain.model.PeriodWindows()).size)
     }
 
     @Test

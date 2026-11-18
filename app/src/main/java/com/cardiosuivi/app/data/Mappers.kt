@@ -50,12 +50,20 @@ fun MeasurementEntity.toDomain() = Measurement(
     id = id, sessionId = sessionId, index = indexInSession, systolic = systolic, diastolic = diastolic, pulse = pulse,
     measuredAt = Instant.ofEpochMilli(measuredAt), source = enumOr(source, MeasurementSource.MANUAL),
     ocrConfidence = ocrConfidence, note = note,
+    modifiedAt = modifiedAt?.let { Instant.ofEpochMilli(it) }, zoneId = zoneId, utcOffsetSeconds = utcOffsetSeconds,
 )
 
 fun Measurement.toEntity(sessionId: Long) = MeasurementEntity(
     id = id, sessionId = sessionId, indexInSession = index, systolic = systolic, diastolic = diastolic, pulse = pulse,
     measuredAt = measuredAt.toEpochMilli(), source = source.name, ocrConfidence = ocrConfidence, note = note,
+    modifiedAt = modifiedAt?.toEpochMilli(), zoneId = zoneId, utcOffsetSeconds = utcOffsetSeconds,
 )
+
+fun com.cardiosuivi.app.data.db.AiAnalysisEntity.toDomain() =
+    com.cardiosuivi.domain.model.AiAnalysisRecord(id, Instant.ofEpochMilli(createdAt), provider, model, question, answer)
+
+fun com.cardiosuivi.domain.model.AiAnalysisRecord.toEntity() =
+    com.cardiosuivi.app.data.db.AiAnalysisEntity(id, createdAt.toEpochMilli(), provider, model, question, answer)
 
 fun MeasurementSession.toEntity() = SessionEntity(
     id = id, startedAt = startedAt.toEpochMilli(), completedAt = completedAt?.toEpochMilli(), localDate = localDate.toString(),

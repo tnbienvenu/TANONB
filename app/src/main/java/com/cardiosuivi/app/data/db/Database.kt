@@ -52,6 +52,10 @@ data class MeasurementEntity(
     val source: String,
     val ocrConfidence: Double?,
     val note: String,
+    // Version 2 (1.1.0) : colonnes ajoutées, NULL pour les mesures antérieures (jamais complétées rétroactivement).
+    val modifiedAt: Long? = null,
+    val zoneId: String? = null,
+    val utcOffsetSeconds: Int? = null,
 )
 
 data class SessionWithMeasurements(
@@ -101,6 +105,32 @@ data class ReminderEventEntity(
     val action: String,
     val at: Long,
 )
+
+/** Interprétations IA conservées (version 2). */
+@Entity(tableName = "ai_analyses", indices = [Index("createdAt")])
+data class AiAnalysisEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val createdAt: Long,
+    val provider: String,
+    val model: String,
+    val question: String,
+    val answer: String,
+)
+
+@Dao
+interface AiAnalysisDao {
+    @Insert
+    suspend fun insert(a: AiAnalysisEntity): Long
+
+    @Query("SELECT * FROM ai_analyses ORDER BY createdAt DESC LIMIT 1")
+    fun observeLatest(): Flow<AiAnalysisEntity?>
+
+    @Query("SELECT * FROM ai_analyses ORDER BY createdAt DESC")
+    suspend fun getAll(): List<AiAnalysisEntity>
+
+    @Query("DELETE FROM ai_analyses")
+    suspend fun deleteAll()
+}
 
 @Dao
 interface SessionDao {
@@ -210,23 +240,42 @@ interface ReminderEventDao {
 }
 
 @Database(
-    entities = [SessionEntity::class, MeasurementEntity::class, ProfileEntity::class, TreatmentEntity::class, ObservationEntity::class, ReminderEventEntity::class],
-    version = 1,
+    entities = [SessionEntity::class, MeasurementEntity::class, ProfileEntity::class, TreatmentEntity::class, ObservationEntity::class, ReminderEventEntity::class, AiAnalysisEntity::class],
+    version = 2,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun profileDao(): ProfileDao
     abstract fun reminderEventDao(): ReminderEventDao
+    abstract fun aiAnalysisDao(): AiAnalysisDao
 
     companion object {
         const val NAME = "cardiosuivi.db"
+
+        /**
+         * 1.0.x → 1.1.0 : ajout de colonnes facultatives et d'une table. Aucune donnée existante n'est modifiée ni
+         * supprimée (pas de migration destructive).
+         */
+        val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE measurements ADD COLUMN modifiedAt INTEGER")
+                db.execSQL("ALTER TABLE measurements ADD COLUMN zoneId TEXT")
+                db.execSQL("ALTER TABLE measurements ADD COLUMN utcOffsetSeconds INTEGER")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `ai_analyses` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `createdAt` INTEGER NOT NULL, " +
+                        "`provider` TEXT NOT NULL, `model` TEXT NOT NULL, `question` TEXT NOT NULL, `answer` TEXT NOT NULL)",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_ai_analyses_createdAt` ON `ai_analyses` (`createdAt`)")
+            }
+        }
 
         /** Ouvre la base chiffrée par SQLCipher (AES-256) avec la phrase secrète protégée par le Keystore. */
         fun openEncrypted(context: Context, passphrase: ByteArray): AppDatabase {
             System.loadLibrary("sqlcipher")
             return Room.databaseBuilder(context, AppDatabase::class.java, NAME)
                 .openHelperFactory(SupportOpenHelperFactory(passphrase))
+                .addMigrations(MIGRATION_1_2)
                 .build()
         }
     }

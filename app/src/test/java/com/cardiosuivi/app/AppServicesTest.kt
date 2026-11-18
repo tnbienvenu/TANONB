@@ -9,7 +9,6 @@ import com.cardiosuivi.app.ai.AiClient
 import com.cardiosuivi.app.ai.AiService
 import com.cardiosuivi.app.data.AiProvider
 import com.cardiosuivi.app.data.SettingsRepository
-import com.cardiosuivi.app.ocr.ImagePreprocessor
 import com.cardiosuivi.app.reminders.ReminderScheduler
 import com.cardiosuivi.app.security.SecretStore
 import com.cardiosuivi.domain.ai.AiContext
@@ -82,25 +81,6 @@ class AppServicesTest {
         assertFalse(a.sentToProvider)
         assertEquals(AiSafetyGuard.REFUSAL, a.text)
     }
-
-    @Test
-    fun otsuThresholdSeparatesTwoClasses() {
-        val hist = IntArray(256).also { it[30] = 500; it[220] = 500 }
-        val t = ImagePreprocessor.otsu(hist, 1000)
-        assertTrue("seuil $t", t in 30 until 220)
-    }
-
-    @Test
-    fun binarizeProducesBlackAndWhiteOnly() {
-        val bmp = android.graphics.Bitmap.createBitmap(4, 1, android.graphics.Bitmap.Config.ARGB_8888)
-        bmp.setPixel(0, 0, android.graphics.Color.rgb(10, 10, 10)); bmp.setPixel(1, 0, android.graphics.Color.rgb(20, 20, 20))
-        bmp.setPixel(2, 0, android.graphics.Color.rgb(230, 230, 230)); bmp.setPixel(3, 0, android.graphics.Color.rgb(240, 240, 240))
-        val out = ImagePreprocessor.binarize(bmp)
-        assertEquals(android.graphics.Color.BLACK, out.getPixel(0, 0))
-        assertEquals(android.graphics.Color.WHITE, out.getPixel(3, 0))
-        val inv = ImagePreprocessor.binarize(bmp, invert = true)
-        assertEquals(android.graphics.Color.WHITE, inv.getPixel(0, 0))
-    }
 }
 
 class AppLockTest {
@@ -111,7 +91,7 @@ class AppLockTest {
         org.junit.Assert.assertTrue(lock.locked.value) // verrouillée au démarrage
         lock.unlock()
         lock.onBackground(); now += 20_000; lock.onForeground()
-        org.junit.Assert.assertFalse(lock.locked.value) // sélecteur de photo, partage…
+        org.junit.Assert.assertFalse(lock.locked.value) // partage, sélecteur de fichier…
         lock.onBackground(); now += 61_000; lock.onForeground()
         org.junit.Assert.assertTrue(lock.locked.value)
     }

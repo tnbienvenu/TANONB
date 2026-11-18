@@ -9,7 +9,6 @@ import com.cardiosuivi.app.data.ProfileRepository
 import com.cardiosuivi.app.data.SessionRepository
 import com.cardiosuivi.app.data.SettingsRepository
 import com.cardiosuivi.app.data.db.AppDatabase
-import com.cardiosuivi.app.ocr.OcrEngine
 import com.cardiosuivi.app.reminders.ReminderScheduler
 import com.cardiosuivi.app.security.AppLock
 import com.cardiosuivi.app.security.DatabaseKeyManager
@@ -65,8 +64,8 @@ class AppContainer(private val context: Context) {
     // aucun composant ne doit conserver une référence vers l'ancienne base fermée.
     val sessions: SessionRepository get() = SessionRepository(database)
     val profile: ProfileRepository get() = ProfileRepository(database)
+    val aiAnalyses: com.cardiosuivi.app.data.AiAnalysisRepository get() = com.cardiosuivi.app.data.AiAnalysisRepository(database)
     val maintenance: DataMaintenance get() = DataMaintenance(database)
-    val ocr: OcrEngine by lazy { OcrEngine() }
 
     private val http by lazy { com.cardiosuivi.app.ai.defaultHttpClientForApp() }
 

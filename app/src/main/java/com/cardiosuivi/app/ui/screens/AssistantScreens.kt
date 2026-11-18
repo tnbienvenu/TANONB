@@ -78,6 +78,14 @@ fun AssistantScreen(vm: AppViewModel, nav: NavHostController) {
             try {
                 val a = vm.c.ai.ask(q, ctx)
                 answer = a.text; source = a.source
+                // Conservation locale (base chiffrée) de l'interprétation réellement reçue, avec sa date.
+                if (a.sentToProvider) {
+                    vm.c.aiAnalyses.save(com.cardiosuivi.domain.model.AiAnalysisRecord(
+                        createdAt = java.time.Instant.now(), provider = provider.label,
+                        model = if (provider == AiProvider.ANTHROPIC) settings.anthropicModel else settings.openAiModel,
+                        question = q, answer = a.text,
+                    ))
+                }
             } catch (e: AiException) {
                 error = e.message
             } catch (e: Exception) {
