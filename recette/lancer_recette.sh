@@ -20,6 +20,8 @@ for cls in "$@"; do
       $ADB shell pm revoke $P android.permission.$perm
       $ADB shell pm clear-permission-flags $P android.permission.$perm user-set user-fixed
     done
+    # Android 14 tue le processus lors du retrait de l'alarme exacte : retrait fait ici, avant le lancement.
+    $ADB shell appops set $P SCHEDULE_EXACT_ALARM deny
   fi
   if [[ "$cls" == *r16_notification* ]]; then $ADB shell appops set $P SCHEDULE_EXACT_ALARM default; fi
   echo "=== $cls $(date +%H:%M:%S)"
