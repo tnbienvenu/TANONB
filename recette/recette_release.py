@@ -15,9 +15,17 @@ subprocess.run(ADB + ["logcat", "-b", "crash", "-c"], capture_output=True)  # se
 r = subprocess.run(ADB + ["install", "-r", APK], capture_output=True, text=True)
 record("RL00", "APK release – installation", "app-x86_64-release.apk signé", "installation réussie", r.stdout.strip()[-40:], "Success" in r.stdout)
 sh("pm", "grant", PKG, "android.permission.POST_NOTIFICATIONS")
+subprocess.run(ADB + ["logcat", "-c"], capture_output=True)
 sh("am", "start", "-n", f"{PKG}/.MainActivity")
 ok = wait("Bienvenue dans CardioSuivi", 240)
 record("RL01", "Release – démarrage", "premier lancement", "avertissement initial affiché", "affiché" if ok else "absent", ok)
+# 1.1.0 : premier démarrage après installation neuve sans ANR (la 1.0.1 en subissait un sur cet émulateur).
+time.sleep(90)
+lg = subprocess.run(ADB + ["logcat", "-d", "-v", "time"], capture_output=True, text=True).stdout
+anr = [l for l in lg.splitlines() if ("ANR" in l and f"{PKG}" in l and ".debug" not in l) or (f"Killing" in l and f"{PKG}/" in l)]
+disp = [l.split("Displayed")[1].strip()[:60] for l in lg.splitlines() if "Displayed" in l and f"{PKG}/" in l]
+record("RL01b", "Release – premier démarrage sans ANR", "installation neuve, 90 s d'observation", "aucun ANR ni arrêt du processus",
+       f"affichage : {disp[:1]} ; ANR/arrêts : {len(anr)}", not anr and find("Bienvenue dans CardioSuivi") is not None)
 subprocess.run(ADB + ["exec-out", "screencap", "-p"], stdout=open("/tmp/rl_secure.png", "wb"))
 from PIL import Image
 ext = Image.open("/tmp/rl_secure.png").convert("L").getextrema()
@@ -34,13 +42,12 @@ record("RL03", "Release – tableau de bord", "acceptation", "tableau de bord", 
 
 # Séance manuelle de 2 mesures (fictives) puis arrêt
 tap("Mesures", exact=True); tap("Nouvelle séance", exact=True)
-tap("Je suis déjà reposé(e) : commencer")
-tap_res("com.android.permissioncontroller:id/permission_allow_foreground_only_button", 20) or tap_res("com.android.permissioncontroller:id/permission_allow_one_time_button", 5)
+tap_scroll("Je suis déjà reposé(e) : commencer")
 for i, (s, d, p) in enumerate([("142", "91", "71"), ("138", "88", "69")]):
-    tap("Saisie manuelle", timeout=240)
-    type_in("Systolique (SYS", s); type_in("Diastolique (DIA", d); type_in("Fréquence cardiaque (PUL", p)
+    wait("SYS — Pression systolique", 240)
+    type_in("SYS — ", s); type_in("DIA — ", d); type_in("PUL — ", p)
     sh("input", "keyevent", "KEYCODE_BACK"); time.sleep(1)
-    tap("Valider ces valeurs")
+    tap("Valider et continuer")
     ok = wait(f"Mesure {i+1} enregistrée", 180)
     record(f"RL04-{i+1}", "Release – saisie de mesure", f"{s}/{d}/{p}", f"« Mesure {i+1} enregistrée »", "OK" if ok else "échec", ok)
     if i == 0: tap("Mesurer maintenant")
