@@ -1,2 +1,14 @@
-MG00	Installation 1.0.1	CardioSuivi-1.0.1-x86_64.apk	installation de la 1.0.1	amed Install
-Success version 1.0.1	RÉUSSI	journal adb
+MG00	Installation 1.0.1	CardioSuivi-1.0.1-x86_64.apk	installation de la 1.0.1 (neuve)	déjà installée, données vierges, version 1.0.1	RÉUSSI	journal adb
+MG01	Données saisies en 1.0.1	profil, traitement, lundi, IA Anthropic, séance soir bras droit 142/91/71, 138/88/—, 135/86/70	séance enregistrée avec 3 horodatages	horodatages ['16:00:11', '16:03:57', '16:08:35']	RÉUSSI	journal adb
+MG02	Mise à jour 1.0.1 → 1.1.0	adb install -r (même certificat)	mise à jour acceptée, version 1.1.0	amed Install
+Success  version 1.1.0	RÉUSSI	journal adb
+MG03	Démarrage après mise à jour	première ouverture 1.1.0 (migration Room 1→2)	accueil direct, profil conservé, sans réinitialisation	absent	ÉCHOUÉ	journal adb
+MG04	Mesures conservées	séance 1.0.1	3 mesures identiques, pouls absent conservé (non inventé)	conformes	RÉUSSI	journal adb
+MG05	Horodatages conservés	1.0.1 : ['16:00:11', '16:03:57', '16:08:35']	mêmes heures à la seconde après mise à jour	1.1.0 : ['16:00:11', '16:03:57', '16:08:35']	RÉUSSI	journal adb
+MG06	Bras et période conservés	séance 1.0.1 « Soir », « Bras droit »	aucune réécriture rétroactive (pas de « bras gauche »)	bras droit + soir	RÉUSSI	journal adb
+MG07	Traitements conservés	traitement saisi en 1.0.1	présent	absent	ÉCHOUÉ	journal adb
+MG08	Rappels conservés	lundi ajouté en 1.0.1	lundi toujours sélectionné ; horaires 07:00 / 19:00	lundi sélectionné=True	RÉUSSI	journal adb
+MG09	Alarmes reprogrammées après mise à jour	dumpsys alarm	alarmes de rappel présentes (MY_PACKAGE_REPLACED)	5 alarme(s)	RÉUSSI	journal adb
+MG10	Paramètres IA conservés	fournisseur Anthropic choisi en 1.0.1	Anthropic toujours sélectionné, aucun consentement ajouté	états des boutons radio (Aucun, Anthropic, OpenAI) = ['true', 'false', 'false']	ÉCHOUÉ	journal adb
+MG11	Nouvelle séance après mise à jour	131/84/74, 129/83/72, 128/82/72	deux séances dans l'historique (1.0.1 et 1.1.0)	présentes	RÉUSSI	journal adb
+MG12	Aucun plantage	journal crash	aucun plantage de com.cardiosuivi.app	aucun	RÉUSSI	journal adb
