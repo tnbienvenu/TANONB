@@ -73,7 +73,7 @@ programmé. Les séances déjà enregistrées ne sont **pas** reclassées. Les s
 
 1. *(Recommandé)* Dans la 1.0.1 : **Plus › Sauvegarde et restauration › Exporter**, avec un mot de passe ; conservez le
    fichier hors du téléphone.
-2. Téléchargez `CardioSuivi-1.1.0-arm64-v8a.apk` (Razr 50s) et vérifiez son empreinte SHA-256 (`dist/SHA256SUMS.txt`).
+2. Téléchargez `CardioSuivi-1.1.0-arm64-v8a.apk` (Razr 50s ; `CardioSuivi-1.1.0-universal.apk` pour tout autre téléphone) et vérifiez son empreinte SHA-256 (`dist/SHA256SUMS.txt`).
 3. Ouvrez l'APK et choisissez **Mettre à jour** (ne désinstallez pas la 1.0.1 : une désinstallation effacerait la base
    chiffrée). Android accepte la mise à jour car le certificat est le même.
 4. Ouvrez CardioSuivi : la base est migrée automatiquement à la première ouverture ; vos séances, traitements, rappels
@@ -83,3 +83,7 @@ programmé. Les séances déjà enregistrées ne sont **pas** reclassées. Les s
 
 En cas de message « Application non installée » : un APK signé avec une autre clé est déjà installé ; ne désinstallez
 qu'après avoir exporté une sauvegarde, puis restaurez-la dans la 1.1.0.
+
+## 7. Résultats des tests
+
+Voir le rapport de recette détaillé : [RECETTE_1.1.0.md](RECETTE_1.1.0.md) et les captures `docs/captures-1.1.0/`.

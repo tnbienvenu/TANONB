@@ -18,7 +18,7 @@ Journaux : `recette/journal_1.1.0.tsv` (tests instrumentés, dernière exécutio
 `recette/journal_migration_passe2.tsv` (mise à jour réelle), `recette/journal_release_1.1.0.tsv` (APK release).
 Captures : `docs/captures-1.1.0/` (écrans, parcours clair/sombre, preuves par scénario).
 
-## 2. Tests automatisés sur JVM
+## 2. Tests automatisés sur JVM (réexécutés le 19/11 sur le code final, `--rerun`)
 
 | Suite | Résultat |
 |---|---|
@@ -86,9 +86,26 @@ installé **par-dessus** (`adb install -r`, sans désinstallation), puis contrô
 Conclusion : **aucune perte de données** constatée lors de la mise à jour réelle. Migration Room 1 → 2 également
 couverte par un test unitaire sur un schéma 1.0 réel (`MigrationTest`).
 
-## 6. Recette de l'APK release 1.1.0
+## 6. Recette de l'APK release 1.1.0 (`recette/journal_release_1.1.0.tsv`)
 
-Voir `recette/journal_release_1.1.0.tsv` (résultats reportés au § 6 bis après exécution).
+APK release signé (minifié R8), installation neuve, pilotage par l'arbre d'accessibilité (écran protégé).
+
+| Id | Vérification | Résultat |
+|---|---|---|
+| RL00 | installation | réussi |
+| RL01 / RL01b | premier démarrage : avertissement affiché ; **aucun ANR ni arrêt** pendant 90 s (affichage en 19 à 27 s selon l'exécution) | réussis |
+| RL02 | écran protégé par défaut (capture système noire) | réussi |
+| RL03 | tableau de bord après acceptation | réussi |
+| RL04-1/2 | saisie SYS/DIA/PUL de 2 mesures (142/91/71, 138/88/69) | réussis |
+| RL05 | moyenne 140,0/89,5 · 70,0 | réussi |
+| RL06 | enregistrement d'une séance incomplète | réussi |
+| RL07 | sérialisation JSON des données IA après R8 | réussi |
+| RL08 | rapport PDF | réussi |
+| RL09 | aucun plantage | réussi |
+| RL10 | persistance après arrêt forcé du processus (base chiffrée) | réussi |
+
+Trois exécutions préalables s'étaient arrêtées sur des défauts **du script** (bouton hors écran, libellé « Mesurer
+maintenant » devenu « Mesure suivante » à la fin du décompte, comportement attendu) ; script corrigé, exécution complète réussie.
 
 ## 7. Anomalies
 
@@ -106,3 +123,14 @@ Voir `recette/journal_release_1.1.0.tsv` (résultats reportés au § 6 bis aprè
 - Biométrie réelle : non rejouée dans cette campagne (inchangée depuis la 1.0.2 où elle a été vérifiée sur émulateur).
 - Envoi réel à un fournisseur d'IA (volontairement : serveur simulé uniquement).
 - Changement de date système autour de minuit sur l'appareil : couvert par test unitaire (`EntryAndTimestampTest.dateChangeAroundMidnight`), non rejoué sur l'émulateur.
+
+## 9. Conclusion
+
+Tous les tests fonctionnels et de non-régression prévus sur émulateur ont été **exécutés** : tests JVM (72), recette
+instrumentée (134 scénarios, 132 réussis par l'automate, 2 confirmés depuis l'hôte), mise à jour réelle 1.0.1 → 1.1.0
+(passes 1 et 2), recette de l'APK release (12 contrôles). **Aucune anomalie fonctionnelle ouverte sur émulateur** ;
+l'anomalie A1.1-01 est corrigée et vérifiée. La version 1.1.0 est **validée sur émulateur Android 14** ; elle reste
+**non vérifiée sur un Motorola Razr 50s réel**.
+
+APK livrés (`dist/`, signés avec le certificat `c526072e…a500b7`, identique à la 1.0.x) :
+`CardioSuivi-1.1.0-arm64-v8a.apk` (Razr 50s) et `CardioSuivi-1.1.0-universal.apk` ; empreintes dans `dist/SHA256SUMS.txt`.

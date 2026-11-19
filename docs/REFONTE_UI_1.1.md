@@ -72,7 +72,9 @@ dans « Profil » avec le même libellé ; « Historique », « Graphiques » et
 - Les graphiques sont dessinés par l'application (pas de bibliothèque tierce) : pas de zoom par pincement.
 - Captures d'écran réalisées avec des **données fictives** (profil « Démo (fictif) »), jamais enregistrées en production.
 
-## 6. Résultats des tests (version 1.1.0)
+## 6. Résultats de la campagne « refonte graphique » (avant suppression de l'OCR)
+
+> Résultats historiques (interface seule). La recette de la version 1.1.0 finale est dans [RECETTE_1.1.0.md](RECETTE_1.1.0.md).
 
 Environnement : émulateur Android 14 (API 34, x86_64, **sans accélération matérielle**), écran 720 × 1760 à 280 dpi
 (proportions du Razr 50s déplié). Données **fictives** créées par les tests (profils « Démo (fictif) », « … FICTIF »).
@@ -101,7 +103,7 @@ fonctionnel est constaté a posteriori, et 2 contrôles de taille d'écran véri
 **Non exécuté** : aucun test sur un Motorola Razr 50s physique (écran externe réel, charnière, capteur d'empreinte,
 appareil photo réel en conditions de mesure, autonomie, performances réelles).
 
-### APK signé de production
+### APK signé de production (historique — remplacé par l'APK 1.1.0 final, voir RECETTE_1.1.0.md)
 
 - `dist/CardioSuivi-1.1.0-arm64-v8a.apk` (Razr 50s : arm64-v8a), versionCode 4, versionName 1.1.0, minifié R8.
   SHA-256 : `994f36100bf9b916a0aa24f6e13f15aa8f485bc8cd674920efabafbc157f46dc`.
