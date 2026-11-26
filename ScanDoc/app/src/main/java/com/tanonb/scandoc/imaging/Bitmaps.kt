@@ -116,6 +116,59 @@ object Bitmaps {
         return out
     }
 
+    /** Rognage automatique des bandes de fond restées en haut, en bas et sur les côtés. */
+    fun autoTrim(b: Bitmap): Bitmap {
+        val f = minOf(1f, 400f / max(b.width, b.height))
+        val small = if (f < 1f) Bitmap.createScaledBitmap(b, (b.width * f).roundToInt().coerceAtLeast(32), (b.height * f).roundToInt().coerceAtLeast(32), true) else b
+        val px = IntArray(small.width * small.height)
+        small.getPixels(px, 0, small.width, 0, 0, small.width, small.height)
+        val t = Trim.find(px, small.width, small.height)
+        val sx = b.width.toFloat() / small.width; val sy = b.height.toFloat() / small.height
+        if (small !== b) small.recycle()
+        val top = (t[0] * sy).roundToInt(); val bottom = (t[1] * sy).roundToInt(); val left = (t[2] * sx).roundToInt(); val right = (t[3] * sx).roundToInt()
+        if (top + bottom + left + right == 0) return b
+        val out = Bitmap.createBitmap(b, left, top, b.width - left - right, b.height - top - bottom)
+        if (out !== b) b.recycle()
+        return out
+    }
+
+    /** Réglage « Aplanir les pages courbées » (mis à jour depuis les préférences). */
+    @Volatile var flattenEnabled: Boolean = true
+
+    /**
+     * Recadrage avec aplanissement : si les bords réels de la feuille sont courbes, la page est « dépliée »
+     * (carreau de Coons) ; sinon redressement de perspective classique.
+     */
+    fun flatWarp(src: Bitmap, q: Quad, maxDim: Int = PROCESSED_MAX): Bitmap {
+        if (q.isFull || !flattenEnabled) return warp(src, q, maxDim)
+        val fa = minOf(1f, 900f / max(src.width, src.height))
+        val small = if (fa < 1f) Bitmap.createScaledBitmap(src, (src.width * fa).roundToInt(), (src.height * fa).roundToInt(), true) else src
+        val spx = IntArray(small.width * small.height)
+        small.getPixels(spx, 0, small.width, 0, 0, small.width, small.height)
+        val qs = q.points.map { floatArrayOf(it.x * small.width, it.y * small.height) }
+        val curves = Dewarp.edgeCurves(spx, small.width, small.height, qs)
+        if (small !== src) small.recycle()
+        // Courbure négligeable partout : la perspective suffit (plus fidèle pour une feuille plane).
+        val significant = (0 until 4).any { k ->
+            val a = qs[if (k == 3) 0 else if (k == 2) 3 else k]; val b = qs[if (k == 0) 1 else if (k == 3) 3 else 2]
+            val len = hypot(b[0] - a[0], b[1] - a[1])
+            (0..10).any { i -> val t = i / 10f; kotlin.math.abs(t * (1 - t) * (curves[k][0] + curves[k][1] * t)) > 0.004f * len }
+        }
+        if (!significant) return warp(src, q, maxDim)
+        val sc = 1f / fa
+        val qf = q.points.map { floatArrayOf(it.x * src.width, it.y * src.height) }
+        val cf = Array(4) { floatArrayOf(curves[it][0] * sc, curves[it][1] * sc) }
+        var outW = max(hypot(qf[1][0] - qf[0][0], qf[1][1] - qf[0][1]), hypot(qf[2][0] - qf[3][0], qf[2][1] - qf[3][1]))
+        var outH = max(hypot(qf[3][0] - qf[0][0], qf[3][1] - qf[0][1]), hypot(qf[2][0] - qf[1][0], qf[2][1] - qf[1][1]))
+        val scale = minOf(1f, maxDim / max(outW, outH))
+        outW = (outW * scale).coerceAtLeast(16f); outH = (outH * scale).coerceAtLeast(16f)
+        val px = IntArray(src.width * src.height)
+        src.getPixels(px, 0, src.width, 0, 0, src.width, src.height)
+        val ow = outW.roundToInt(); val oh = outH.roundToInt()
+        val out = Dewarp.render(px, src.width, src.height, qf, cf, ow, oh)
+        return Bitmap.createBitmap(out, ow, oh, Bitmap.Config.ARGB_8888).copy(Bitmap.Config.ARGB_8888, true)
+    }
+
     fun rotate(b: Bitmap, degrees: Int): Bitmap {
         if (degrees % 360 == 0) return b
         val m = Matrix().apply { postRotate(degrees.toFloat()) }
@@ -148,7 +201,8 @@ object Bitmaps {
         original: Bitmap, quad: Quad, rotation: Int, filter: PageFilter,
         marks: List<Mark> = emptyList(), stamps: List<Stamp> = emptyList(), maxDim: Int = PROCESSED_MAX,
     ): Bitmap {
-        var b = warp(original, quad, maxDim)
+        var b = flatWarp(original, quad, maxDim)
+        if (!quad.isFull) b = autoTrim(b)
         b = rotate(b, rotation)
         b = applyFilter(b, filter)
         return drawOverlays(b, marks, stamps)

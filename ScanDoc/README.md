@@ -28,6 +28,7 @@ Les fichiers partagés depuis une autre application (Partager → ScanDoc : imag
 
 - **PDF** : écrits sans bibliothèque (`export/PdfWriter.kt`). Une image JPEG par page et une couche de texte invisible issue de l'OCR : le PDF est **consultable** (recherche, copier-coller). Taille de page au choix. Chiffrement standard PDF (RC4 128 bits) pour le mot de passe.
 - **OCR** : ML Kit Text Recognition (alphabet latin), embarqué et hors ligne. Il sert aussi aux exports Word (`.docx` modifiable) et texte.
+- **Aplanissement** : si les bords de la feuille sont courbes (feuille gondolée, pliée), la page est « dépliée » sur un rectangle (carreau de Coons) ; puis **rognage automatique** des bandes de fond restantes.
 - **Recadrage automatique** : détection des bords sans OpenCV (`imaging/DocumentDetector.kt`). Seuillage d'Otsu, plus grande zone claire, enveloppe convexe et quadrilatère d'aire maximale. La perspective est ensuite corrigée.
 - **Filtres** (`imaging/Filters.kt`) : le fond du papier est estimé par blocs puis divisé, ce qui supprime les ombres et blanchit le papier.
 - **Non destructif** : la photo d'origine est conservée. Recadrage, rotation, filtre, retouches et signatures restent modifiables.
@@ -37,8 +38,8 @@ Les fichiers partagés depuis une autre application (Partager → ScanDoc : imag
 
 APK dans `dist/` :
 
-- `ScanDoc-1.0.1-arm64-v8a.apk` : la grande majorité des téléphones ;
-- `ScanDoc-1.0.1-universal.apk` : tout appareil, en cas de doute.
+- `ScanDoc-1.0.2-arm64-v8a.apk` : la grande majorité des téléphones ;
+- `ScanDoc-1.0.2-universal.apk` : tout appareil, en cas de doute.
 
 Sur le téléphone : ouvrez l'APK depuis **Fichiers**, puis autorisez l'installation depuis cette source. Android 10 ou plus récent est nécessaire.
 

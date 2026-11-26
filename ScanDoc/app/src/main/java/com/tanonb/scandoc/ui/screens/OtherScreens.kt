@@ -310,6 +310,8 @@ fun SettingsScreen(nav: NavHostController) {
             SettingCard {
                 SwitchRow("Recadrage automatique", "Détecte les bords de la feuille sur les photos importées", s.autoCrop) { v -> store.update { it.copy(autoCrop = v) } }
                 HorizontalDivider()
+                SwitchRow("Aplanir les pages courbées", "Redresse une feuille gondolée ou pliée, comme sur un scanner à plat", s.flatten) { v -> store.update { it.copy(flatten = v) } }
+                HorizontalDivider()
                 Text("Filtre par défaut", Modifier.padding(16.dp, 12.dp, 16.dp, 0.dp), style = MaterialTheme.typography.bodyLarge)
                 PageFilter.entries.forEach { f -> RadioRow(f.label, null, s.defaultFilter == f) { store.update { it.copy(defaultFilter = f) } } }
             }

@@ -14,6 +14,7 @@ data class AppSettings(
     val pageSize: PageSize = PageSize.AUTO,
     val showBanner: Boolean = true,
     val searchablePdf: Boolean = true,
+    val flatten: Boolean = true,
 )
 
 class SettingsStore(context: Context) {
@@ -29,7 +30,8 @@ class SettingsStore(context: Context) {
         pageSize = PageSize.of(prefs.getString("pageSize", null)),
         showBanner = prefs.getBoolean("showBanner", true),
         searchablePdf = prefs.getBoolean("searchablePdf", true),
-    )
+        flatten = prefs.getBoolean("flatten", true),
+    ).also { com.tanonb.scandoc.imaging.Bitmaps.flattenEnabled = it.flatten }
 
     fun update(transform: (AppSettings) -> AppSettings) {
         val s = transform(_state.value)
@@ -40,7 +42,9 @@ class SettingsStore(context: Context) {
             .putString("pageSize", s.pageSize.name)
             .putBoolean("showBanner", s.showBanner)
             .putBoolean("searchablePdf", s.searchablePdf)
+            .putBoolean("flatten", s.flatten)
             .apply()
         _state.value = s
+        com.tanonb.scandoc.imaging.Bitmaps.flattenEnabled = s.flatten
     }
 }

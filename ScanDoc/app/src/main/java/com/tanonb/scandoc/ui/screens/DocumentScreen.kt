@@ -119,6 +119,7 @@ fun DocumentScreen(nav: NavHostController, docId: Long) {
     var rename by remember { mutableStateOf(false) }
     var deletePage by remember { mutableStateOf(false) }
     var showSize by remember { mutableStateOf(false) }
+    val pendingTurns = remember { androidx.compose.runtime.mutableStateMapOf<Long, Int>() }
 
     val current = pages.getOrNull(pager.currentPage.coerceAtMost((pages.size - 1).coerceAtLeast(0)))
     // Document supprimé (dernière page retirée, ou suppression depuis le menu).
@@ -165,7 +166,13 @@ fun DocumentScreen(nav: NavHostController, docId: Long) {
                 ) {
                     ToolButton(Icons.Outlined.AddPhotoAlternate, "Ajouter") { showAdd = true }
                     ToolButton(Icons.Outlined.Crop, "Recadrer") { current?.let { nav.navigate(Routes.edit(it.id)) } }
-                    ToolButton(Icons.AutoMirrored.Outlined.RotateRight, "Pivoter") { current?.let { p -> work("Rotation…") { context.app.background { rotatePage(p.id, 90) } } } }
+                    ToolButton(Icons.AutoMirrored.Outlined.RotateRight, "Pivoter") {
+                        // La page tourne tout de suite à l'écran ; l'image est mise à jour en arrière-plan.
+                        current?.let { p ->
+                            pendingTurns[p.id] = (pendingTurns[p.id] ?: 0) + 1
+                            context.app.appScope.launch { runCatching { repo.rotatePage(p.id, 90) } }
+                        }
+                    }
                     ToolButton(Icons.Outlined.Filter, "Filtres") { showFilters = true }
                     ToolButton(Icons.Outlined.CleaningServices, "Nettoyer") { current?.let { nav.navigate(Routes.marks(it.id)) } }
                     ToolButton(Icons.Outlined.AspectRatio, "Redimens.") { showSize = true }
@@ -179,7 +186,9 @@ fun DocumentScreen(nav: NavHostController, docId: Long) {
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.surfaceVariant)) {
             HorizontalPager(pager, modifier = Modifier.weight(1f).fillMaxWidth(), key = { pages.getOrNull(it)?.id ?: it }) { i ->
-                pages.getOrNull(i)?.let { ZoomablePage(it) }
+                pages.getOrNull(i)?.let { pg ->
+                    ZoomablePage(pg, pendingTurns[pg.id] ?: 0) { done -> pendingTurns[pg.id] = ((pendingTurns[pg.id] ?: 0) - done).coerceAtLeast(0) }
+                }
             }
             Text(
                 if (pages.isEmpty()) "" else "Page ${pager.currentPage + 1} sur ${pages.size}",
@@ -277,12 +286,19 @@ private fun ToolButton(icon: ImageVector, label: String, onClick: () -> Unit) {
     }
 }
 
-/** Page affichée avec zoom (pincer, double-tap). */
+/** Page affichée avec zoom (pincer, double-tap) et rotation animée immédiate. */
 @Composable
-private fun ZoomablePage(page: PageEntity) {
+private fun ZoomablePage(page: PageEntity, pendingTurns: Int, onTurnsApplied: (Int) -> Unit) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
-    Box(
+    // Version de la page réellement affichée (l'image se recharge après le traitement).
+    var shown by remember { mutableStateOf<PageEntity?>(null) }
+    val angle = remember { androidx.compose.animation.core.Animatable(0f) }
+    androidx.compose.runtime.LaunchedEffect(pendingTurns) {
+        val target = pendingTurns * 90f
+        if (target > angle.value) angle.animateTo(target, androidx.compose.animation.core.tween(220)) else angle.snapTo(target)
+    }
+    androidx.compose.foundation.layout.BoxWithConstraints(
         Modifier.fillMaxSize().padding(16.dp)
             .pointerInput(Unit) { detectTapGestures(onDoubleTap = { scale = if (scale > 1f) 1f else 2.5f; offset = Offset.Zero }) }
             .pointerInput(Unit) {
@@ -301,9 +317,29 @@ private fun ZoomablePage(page: PageEntity) {
             },
         contentAlignment = Alignment.Center,
     ) {
+        val sp = shown ?: page
+        val bw = constraints.maxWidth.toFloat().coerceAtLeast(1f); val bh = constraints.maxHeight.toFloat().coerceAtLeast(1f)
+        val iw = sp.width.coerceAtLeast(1).toFloat(); val ih = sp.height.coerceAtLeast(1).toFloat()
+        // Mise à l'échelle pendant le quart de tour : l'image tournée doit tenir dans le cadre.
+        val ratio = minOf(bw / ih, bh / iw) / minOf(bw / iw, bh / ih)
+        val m = ((angle.value % 180f) + 180f) % 180f
+        val f = if (m <= 90f) m / 90f else (180f - m) / 90f
+        val rotScale = 1f + (ratio - 1f) * f
         FileThumbnail(
             page.processedPath, maxDim = 1600, contentScale = ContentScale.Fit,
-            modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = scale; scaleY = scale; translationX = offset.x; translationY = offset.y },
+            tag = page,
+            onShown = { t ->
+                val now = t as? PageEntity ?: return@FileThumbnail
+                val before = shown
+                shown = now
+                if (before != null && before.id == now.id && before.rotation != now.rotation) {
+                    onTurnsApplied(((now.rotation - before.rotation + 360) % 360) / 90)
+                }
+            },
+            modifier = Modifier.fillMaxSize().graphicsLayer {
+                scaleX = scale * rotScale; scaleY = scale * rotScale; translationX = offset.x; translationY = offset.y
+                rotationZ = angle.value
+            },
         )
     }
 }

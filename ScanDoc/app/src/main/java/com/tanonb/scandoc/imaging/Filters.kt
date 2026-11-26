@@ -16,16 +16,31 @@ object Filters {
     fun apply(px: IntArray, w: Int, h: Int, filter: PageFilter) {
         when (filter) {
             PageFilter.ORIGINAL -> Unit
-            PageFilter.AUTO -> { normalize(px, w, h); levels(px, black = 30, white = 235, saturation = 1.25f) }
-            PageFilter.GRAY -> { normalize(px, w, h); levels(px, black = 35, white = 235, saturation = 0f) }
-            PageFilter.BW -> { normalize(px, w, h); blackAndWhite(px) }
-            PageFilter.WHITEBOARD -> { normalize(px, w, h); levels(px, black = 60, white = 215, saturation = 1.5f) }
+            // Rendu « scanner à plat » : ombres et plis effacés (grille fine), papier blanc pur, texte net.
+            PageFilter.AUTO -> { normalize(px, w, h, 40); sharpen(px, w, h, 0.7f); levels(px, black = 45, white = 222, saturation = 1.3f) }
+            PageFilter.GRAY -> { normalize(px, w, h, 40); sharpen(px, w, h, 0.7f); levels(px, black = 45, white = 222, saturation = 0f) }
+            PageFilter.BW -> { normalize(px, w, h, 40); blackAndWhite(px) }
+            PageFilter.WHITEBOARD -> { normalize(px, w, h, 20); levels(px, black = 60, white = 215, saturation = 1.5f) }
+        }
+    }
+
+    private fun sharpCh(v: Int, sum9: Int, amount: Float) = (v + amount * (v - sum9 / 9f)).roundToInt().coerceIn(0, 255)
+
+    /** Accentuation (masque flou) : rend les caractères plus nets, comme un scanner. */
+    fun sharpen(px: IntArray, w: Int, h: Int, amount: Float) {
+        val src = px.copyOf()
+        for (y in 1 until h - 1) for (x in 1 until w - 1) {
+            val i = y * w + x
+            var r = 0; var g = 0; var b = 0
+            for (dy in -1..1) for (dx in -1..1) { val c = src[i + dy * w + dx]; r += (c shr 16) and 0xff; g += (c shr 8) and 0xff; b += c and 0xff }
+            val c = src[i]
+            px[i] = (0xff shl 24) or (sharpCh((c shr 16) and 0xff, r, amount) shl 16) or (sharpCh((c shr 8) and 0xff, g, amount) shl 8) or sharpCh(c and 0xff, b, amount)
         }
     }
 
     /** Divise chaque pixel par la couleur estimée du papier à cet endroit. */
-    fun normalize(px: IntArray, w: Int, h: Int) {
-        val block = max(8, min(w, h) / 20)
+    fun normalize(px: IntArray, w: Int, h: Int, divisions: Int = 20) {
+        val block = max(6, min(w, h) / divisions)
         val gw = (w + block - 1) / block
         val gh = (h + block - 1) / block
         val bgR = FloatArray(gw * gh); val bgG = FloatArray(gw * gh); val bgB = FloatArray(gw * gh)
@@ -43,7 +58,7 @@ object Filters {
             }
             // Seuil des 10 % de pixels les plus clairs du bloc : ce sont ceux du papier.
             var acc = 0; var thr = 255
-            for (v in 255 downTo 0) { acc += hist[v]; if (acc >= count / 10) { thr = v; break } }
+            for (v in 255 downTo 0) { acc += hist[v]; if (acc >= max(1, count / 10)) { thr = v; break } }
             var r = 0L; var g = 0L; var b = 0L; var c = 0
             y = y0
             while (y < y1) {

@@ -98,6 +98,47 @@ class CoreTest {
         assertTrue("erreur avant ${err(start)}, après ${err(snapped)}", err(snapped) < err(start) * 0.5)
     }
 
+    /** Recadrage trop large (table visible sur les 4 bords) : le rognage automatique retire les bandes de table. */
+    @Test fun autoTrimRemovesTableStrips() {
+        val raw = javaClass.classLoader!!.getResourceAsStream("loose_280x380.rgb")!!.readBytes()
+        val w = 280; val h = 380
+        val px = IntArray(w * h) { i -> (0xff shl 24) or ((raw[3 * i].toInt() and 0xff) shl 16) or ((raw[3 * i + 1].toInt() and 0xff) shl 8) or (raw[3 * i + 2].toInt() and 0xff) }
+        val t = com.tanonb.scandoc.imaging.Trim.find(px, w, h)
+        // Contour agrandi de 5 % : la feuille commence à ~2,4 % de chaque bord.
+        val (top, bottom, left, right) = listOf(t[0].toFloat() / h, t[1].toFloat() / h, t[2].toFloat() / w, t[3].toFloat() / w)
+        listOf(top, bottom, left, right).forEach { assertTrue("rognage ${t.toList()}", it in 0.015f..0.04f) }
+    }
+
+    @Test fun autoTrimKeepsCleanPage() {
+        val w = 200; val h = 280
+        val px = IntArray(w * h) { i -> val y = i / w; if (y % 14 in 6..7) 0xFF222222.toInt() else 0xFFF4F4F0.toInt() }
+        assertEquals(listOf(0, 0, 0, 0), com.tanonb.scandoc.imaging.Trim.find(px, w, h).toList())
+    }
+
+    /** Aplanissement : un bord droit reste droit, un bord courbé est mesuré, une mesure aberrante est rejetée. */
+    @Test fun dewarpEdgeFit() {
+        val ts = List(40) { it / 39f }
+        val straight = com.tanonb.scandoc.imaging.Dewarp.fit(ts, ts.map { 0f }, 800f)
+        assertEquals(0f, straight[0], 1e-3f)
+        val bent = ts.map { t -> t * (1 - t) * 40f }               // flèche de 10 px au milieu
+        val noisy = bent.mapIndexed { i, v -> if (i == 7) v + 25f else v }  // un point aberrant
+        val c = com.tanonb.scandoc.imaging.Dewarp.fit(ts, noisy, 800f)
+        assertEquals(40f, c[0], 2f)
+        // Courbure invraisemblable (> 3 % du côté) : on garde le bord droit.
+        val wild = com.tanonb.scandoc.imaging.Dewarp.fit(ts, ts.map { t -> t * (1 - t) * 400f }, 800f)
+        assertEquals(0f, wild[0], 1e-3f)
+    }
+
+    /** Carreau de Coons sur un rectangle sans courbure = simple recadrage. */
+    @Test fun dewarpRenderIdentity() {
+        val w = 40; val h = 30
+        val src = IntArray(w * h) { i -> (0xff shl 24) or ((i % w) * 6 shl 16) or ((i / w) * 8 shl 8) }
+        val q = listOf(floatArrayOf(0f, 0f), floatArrayOf(39f, 0f), floatArrayOf(39f, 29f), floatArrayOf(0f, 29f))
+        val out = com.tanonb.scandoc.imaging.Dewarp.render(src, w, h, q, Array(4) { floatArrayOf(0f, 0f) }, w, h)
+        assertEquals(src[5 * w + 7], out[5 * w + 7])
+        assertEquals(src[29 * w + 39], out[29 * w + 39])
+    }
+
     @Test fun noDocumentOnUniformImage() {
         assertNull(DocumentDetector.detectArgb(IntArray(200 * 200) { 0xFF808080.toInt() }, 200, 200))
     }

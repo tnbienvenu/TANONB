@@ -55,6 +55,8 @@ class Repository(
     private val root = File(context.filesDir, "docs").apply { mkdirs() }
     private val exportDir get() = File(context.cacheDir, "exports").apply { mkdirs() }
     private val ocrMutex = Mutex()
+    /** Une seule modification de page à la fois (évite les conflits si l'on touche plusieurs fois Pivoter). */
+    private val editMutex = Mutex()
 
     /** Nombre de pages en cours de reconnaissance de texte (affiché discrètement dans l'interface). */
     private val _ocrRunning = MutableStateFlow(0)
@@ -158,7 +160,7 @@ class Repository(
     suspend fun updatePage(
         pageId: Long, quad: Quad? = null, rotation: Int? = null, filter: PageFilter? = null,
         stamps: List<Stamp>? = null, marks: List<Mark>? = null,
-    ) = withContext(Dispatchers.Default) {
+    ) = editMutex.withLock { withContext(Dispatchers.Default) {
         val p = dao.page(pageId) ?: return@withContext
         val q = quad ?: Quad.decode(p.quad)
         val rot = (((rotation ?: p.rotation) % 360) + 360) % 360
@@ -179,7 +181,7 @@ class Repository(
         processed.recycle()
         dao.touch(p.documentId)
         launchOcr()
-    }
+    } }
 
     /** Image de base d'une page (recadrée, pivotée, filtrée) sans retouches ni signatures, pour les éditeurs. */
     suspend fun baseImage(pageId: Long, withMarks: Boolean, maxDim: Int = 1600): Pair<PageEntity, Bitmap>? = withContext(Dispatchers.Default) {
@@ -192,9 +194,35 @@ class Repository(
 
     suspend fun setPageSize(docId: Long, size: PageSize) = dao.setPageSize(docId, size.name)
 
-    suspend fun rotatePage(pageId: Long, delta: Int) {
-        val p = dao.page(pageId) ?: return
-        updatePage(pageId, rotation = p.rotation + delta)
+    /**
+     * Rotation rapide : on fait tourner l'image déjà traitée (sans refaire recadrage ni filtre) et on
+     * transforme les coordonnées des retouches et signatures pour qu'elles suivent la page.
+     */
+    suspend fun rotatePage(pageId: Long, delta: Int) = editMutex.withLock {
+        withContext(Dispatchers.Default) {
+            val p = dao.page(pageId) ?: return@withContext
+            val turns = ((delta / 90) % 4 + 4) % 4
+            if (turns == 0) return@withContext
+            val file = File(p.processedPath)
+            val bmp = android.graphics.BitmapFactory.decodeFile(file.absolutePath) ?: return@withContext
+            val rotated = Bitmaps.rotate(bmp, turns * 90)
+            Bitmaps.saveJpeg(rotated, file, 90)
+            var w = p.width.toFloat(); var h = p.height.toFloat()
+            var marks = Mark.decodeList(p.marks); var stamps = Stamp.decodeList(p.stamps)
+            repeat(turns) {
+                // Quart de tour horaire : (x, y) → (1 − y, x) ; les tailles sont relatives à la largeur.
+                marks = marks.map { m -> m.copy(points = m.points.map { pt -> com.tanonb.scandoc.imaging.NPoint(1 - pt.y, pt.x) }, width = m.width * w / h) }
+                stamps = stamps.map { st -> st.copy(cx = 1 - st.cy, cy = st.cx, size = st.size * w / h) }
+                val t = w; w = h; h = t
+            }
+            dao.update(p.copy(
+                rotation = (p.rotation + turns * 90) % 360, width = rotated.width, height = rotated.height,
+                marks = Mark.encodeList(marks), stamps = Stamp.encodeList(stamps), ocr = null,
+            ))
+            rotated.recycle()
+            dao.touch(p.documentId)
+            launchOcr()
+        }
     }
 
     suspend fun setFilterForAll(docId: Long, filter: PageFilter) {
