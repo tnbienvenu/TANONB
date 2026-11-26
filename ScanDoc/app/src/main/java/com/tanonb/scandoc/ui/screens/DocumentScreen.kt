@@ -184,7 +184,7 @@ fun DocumentScreen(nav: NavHostController, docId: Long) {
             }
         },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(Modifier.fillMaxSize().padding(padding).background(Color.Black)) {
             HorizontalPager(pager, modifier = Modifier.weight(1f).fillMaxWidth(), key = { pages.getOrNull(it)?.id ?: it }) { i ->
                 pages.getOrNull(i)?.let { pg ->
                     ZoomablePage(pg, pendingTurns[pg.id] ?: 0) { done -> pendingTurns[pg.id] = ((pendingTurns[pg.id] ?: 0) - done).coerceAtLeast(0) }
@@ -192,7 +192,7 @@ fun DocumentScreen(nav: NavHostController, docId: Long) {
             }
             Text(
                 if (pages.isEmpty()) "" else "Page ${pager.currentPage + 1} sur ${pages.size}",
-                textAlign = TextAlign.Center, style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Center, style = MaterialTheme.typography.labelLarge, color = Color.White,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
             )
             // Bande de vignettes
@@ -205,7 +205,7 @@ fun DocumentScreen(nav: NavHostController, docId: Long) {
                     FileThumbnail(
                         p.processedPath, maxDim = 160,
                         modifier = Modifier.size(48.dp, 64.dp).clip(RoundedCornerShape(4.dp))
-                            .border(if (sel) 3.dp else 1.dp, if (sel) MaterialTheme.colorScheme.primary else Color.LightGray, RoundedCornerShape(4.dp))
+                            .border(if (sel) 3.dp else 1.dp, if (sel) MaterialTheme.colorScheme.primary else Color.DarkGray, RoundedCornerShape(4.dp))
                             .clickable { scope.launch { pager.animateScrollToPage(i) } },
                     )
                 }
@@ -327,7 +327,7 @@ private fun ZoomablePage(page: PageEntity, pendingTurns: Int, onTurnsApplied: (I
         val rotScale = 1f + (ratio - 1f) * f
         FileThumbnail(
             page.processedPath, maxDim = 1600, contentScale = ContentScale.Fit,
-            tag = page,
+            tag = page, background = Color.Transparent,
             onShown = { t ->
                 val now = t as? PageEntity ?: return@FileThumbnail
                 val before = shown

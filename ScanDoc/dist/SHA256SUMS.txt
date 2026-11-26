@@ -1,2 +1,2 @@
-42449d517ae1b941fed032a47ee4b6ee8a2ea01d841767fc17c160d23eeb005c  ScanDoc-1.0.2-arm64-v8a.apk
-e62be1d64866c1c3041294c74172360f197a5a3db9ee4e3c5e67084138821f88  ScanDoc-1.0.2-universal.apk
+4e571693138baf12d8be992dddb9f4d0c2a2c6d4b19a038575b9feda9bbe22d9  ScanDoc-1.0.3-arm64-v8a.apk
+d4d8d1f6be91be6b3098509e0833e532c8ea6c809d0adfdfcbf25d4c395cab21  ScanDoc-1.0.3-universal.apk

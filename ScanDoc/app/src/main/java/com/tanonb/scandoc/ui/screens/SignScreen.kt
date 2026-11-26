@@ -147,7 +147,7 @@ fun SignScreen(nav: NavHostController, docId: Long, startPage: Int) {
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp), contentAlignment = Alignment.Center) {
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().background(Color.Black).padding(12.dp), contentAlignment = Alignment.Center) {
                 val bmp = base
                 if (bmp != null) {
                     val ratio = bmp.width.toFloat() / bmp.height

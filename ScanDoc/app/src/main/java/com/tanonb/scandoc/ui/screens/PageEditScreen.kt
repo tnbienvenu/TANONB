@@ -125,7 +125,7 @@ fun PageEditScreen(nav: NavHostController, pageId: Long) {
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Box(Modifier.weight(1f).fillMaxWidth().background(Color(0xFF202124)).padding(horizontal = 24.dp, vertical = 32.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.weight(1f).fillMaxWidth().background(Color.Black).padding(horizontal = 24.dp, vertical = 32.dp), contentAlignment = Alignment.Center) {
                 if (loaded != null && quad != null) CropEditor(loaded.second, quad!!) { quad = it }
                 preview?.let { pv ->
                     Column(Modifier.align(Alignment.BottomEnd), horizontalAlignment = Alignment.CenterHorizontally) {

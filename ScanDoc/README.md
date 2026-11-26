@@ -38,8 +38,8 @@ Les fichiers partagés depuis une autre application (Partager → ScanDoc : imag
 
 APK dans `dist/` :
 
-- `ScanDoc-1.0.2-arm64-v8a.apk` : la grande majorité des téléphones ;
-- `ScanDoc-1.0.2-universal.apk` : tout appareil, en cas de doute.
+- `ScanDoc-1.0.3-arm64-v8a.apk` : la grande majorité des téléphones ;
+- `ScanDoc-1.0.3-universal.apk` : tout appareil, en cas de doute.
 
 Sur le téléphone : ouvrez l'APK depuis **Fichiers**, puis autorisez l'installation depuis cette source. Android 10 ou plus récent est nécessaire.
 
