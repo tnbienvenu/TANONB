@@ -4,6 +4,8 @@ import com.tanonb.scandoc.export.DocxWriter
 import com.tanonb.scandoc.export.PdfWriter
 import com.tanonb.scandoc.imaging.DocumentDetector
 import com.tanonb.scandoc.imaging.Filters
+import com.tanonb.scandoc.imaging.NPoint
+import com.tanonb.scandoc.imaging.Quad
 import com.tanonb.scandoc.imaging.PageFilter
 import com.tanonb.scandoc.imaging.PageSize
 import com.tanonb.scandoc.ocr.OcrLine
@@ -61,6 +63,39 @@ class CoreTest {
         q!!.points.zip(expected).forEach { (p, e) ->
             assertTrue("coin ${p.x},${p.y} attendu $e", abs(p.x - e.first) < 0.04f && abs(p.y - e.second) < 0.04f)
         }
+    }
+
+    /** Vraie photo (facture sur table claire, reflet à gauche, ordinateur en haut) : la feuille est plus sombre que le reflet. */
+    @Test fun detectsSheetOnRealPhonePhotoWithGlare() {
+        val raw = javaClass.classLoader!!.getResourceAsStream("reel_210x256.rgb")!!.readBytes()
+        val w = 210; val h = 256
+        val px = IntArray(w * h) { i -> (0xff shl 24) or ((raw[3 * i].toInt() and 0xff) shl 16) or ((raw[3 * i + 1].toInt() and 0xff) shl 8) or (raw[3 * i + 2].toInt() and 0xff) }
+        val q = DocumentDetector.detectArgb(px, w, h)
+        assertNotNull(q)
+        val expected = listOf(205f / 1032 to 163f / 1260, 795f / 1032 to 178f / 1260, 980f / 1032 to 1012f / 1260, 255f / 1032 to 1115f / 1260)
+        q!!.points.zip(expected).forEach { (p, e) ->
+            assertTrue("coin ${p.x},${p.y} attendu $e", abs(p.x - e.first) < 0.03f && abs(p.y - e.second) < 0.03f)
+        }
+        // Mode rapide (appareil photo en direct) : même résultat à peu près.
+        val quick = DocumentDetector.detectArgb(px, w, h, quick = true)
+        assertNotNull(quick)
+        quick!!.points.zip(expected).forEach { (p, e) -> assertTrue("rapide ${p.x},${p.y} attendu $e", abs(p.x - e.first) < 0.04f && abs(p.y - e.second) < 0.04f) }
+    }
+
+    /** Recadrage manuel approximatif (côtés haut et bas décalés) : l'aimantation le recale sur les vrais bords. */
+    @Test fun manualCropSnapsToSheetEdges() {
+        val raw = javaClass.classLoader!!.getResourceAsStream("reel_210x256.rgb")!!.readBytes()
+        val w = 210; val h = 256
+        val px = IntArray(w * h) { i -> (0xff shl 24) or ((raw[3 * i].toInt() and 0xff) shl 16) or ((raw[3 * i + 1].toInt() and 0xff) shl 8) or (raw[3 * i + 2].toInt() and 0xff) }
+        val truth = listOf(205f / 1032 to 163f / 1260, 795f / 1032 to 178f / 1260, 980f / 1032 to 1012f / 1260, 255f / 1032 to 1115f / 1260)
+        val off = listOf(0f to -0.025f, 0f to -0.025f, 0f to 0.02f, 0f to 0.02f)  // haut trop haut, bas trop bas
+        val start = Quad(
+            NPoint(truth[0].first + off[0].first, truth[0].second + off[0].second), NPoint(truth[1].first + off[1].first, truth[1].second + off[1].second),
+            NPoint(truth[2].first + off[2].first, truth[2].second + off[2].second), NPoint(truth[3].first + off[3].first, truth[3].second + off[3].second),
+        )
+        val snapped = DocumentDetector.snap(px, w, h, start)
+        fun err(q: Quad) = q.points.zip(truth).sumOf { (p, t) -> (abs(p.x - t.first) + abs(p.y - t.second)).toDouble() }
+        assertTrue("erreur avant ${err(start)}, après ${err(snapped)}", err(snapped) < err(start) * 0.5)
     }
 
     @Test fun noDocumentOnUniformImage() {

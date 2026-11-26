@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -88,10 +89,19 @@ fun PageEditScreen(nav: NavHostController, pageId: Long) {
     var rotation by remember { mutableIntStateOf(-1) }
     var filter by remember { mutableStateOf<PageFilter?>(null) }
     var saving by remember { mutableStateOf(false) }
+    var preview by remember { mutableStateOf<Bitmap?>(null) }
 
     val loaded = data
     if (loaded != null && quad == null) {
         quad = Quad.decode(loaded.first.quad); rotation = loaded.first.rotation; filter = PageFilter.of(loaded.first.filter)
+    }
+
+    // Aperçu du résultat (recadrage + rotation + filtre), recalculé peu après chaque changement.
+    androidx.compose.runtime.LaunchedEffect(loaded, quad, rotation, filter) {
+        val b = loaded?.second ?: return@LaunchedEffect
+        val q = quad ?: return@LaunchedEffect
+        kotlinx.coroutines.delay(250)
+        preview = withContext(Dispatchers.Default) { Bitmaps.render(b, q, rotation, filter ?: PageFilter.AUTO, maxDim = 500) }
     }
 
     Scaffold(
@@ -115,8 +125,17 @@ fun PageEditScreen(nav: NavHostController, pageId: Long) {
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Box(Modifier.weight(1f).fillMaxWidth().background(Color(0xFF202124)).padding(20.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.weight(1f).fillMaxWidth().background(Color(0xFF202124)).padding(horizontal = 24.dp, vertical = 32.dp), contentAlignment = Alignment.Center) {
                 if (loaded != null && quad != null) CropEditor(loaded.second, quad!!) { quad = it }
+                preview?.let { pv ->
+                    Column(Modifier.align(Alignment.BottomEnd), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Image(
+                            pv.asImageBitmap(), "Aperçu du résultat",
+                            Modifier.size(96.dp, 128.dp).background(Color.White).padding(2.dp), contentScale = ContentScale.Fit,
+                        )
+                        Text("Aperçu", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
             }
             Column(Modifier.navigationBarsPadding().padding(vertical = 8.dp)) {
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -143,12 +162,17 @@ fun PageEditScreen(nav: NavHostController, pageId: Long) {
     if (saving) BusyOverlay("Traitement de la page…")
 }
 
+/**
+ * Éditeur de recadrage : 4 coins et 4 poignées au milieu des côtés (déplacent tout le côté).
+ * Au relâchement, le côté touché est aimanté sur le bord réel de la feuille.
+ */
 @Composable
 private fun CropEditor(bitmap: Bitmap, quad: Quad, onChange: (Quad) -> Unit) {
     val image = remember(bitmap) { bitmap.asImageBitmap() }
     val current by rememberUpdatedState(quad)
     var dragging by remember { mutableIntStateOf(-1) }
     var touch by remember { mutableStateOf(Offset.Zero) }
+    val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         val ratio = bitmap.width.toFloat() / bitmap.height
@@ -158,35 +182,67 @@ private fun CropEditor(bitmap: Bitmap, quad: Quad, onChange: (Quad) -> Unit) {
             Image(image, null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
             Canvas(
                 Modifier.fillMaxSize().pointerInput(Unit) {
-                    val grab = 48.dp.toPx()
+                    val grab = 40.dp.toPx()
+                    fun handles(q: Quad): List<Offset> {
+                        val c = q.points.map { Offset(it.x * size.width, it.y * size.height) }
+                        return c + List(4) { i -> (c[i] + c[(i + 1) % 4]) / 2f }
+                    }
                     detectDragGestures(
                         onDragStart = { o ->
-                            val pts = current.points
-                            val i = pts.indices.minBy { hypot(pts[it].x * size.width - o.x, pts[it].y * size.height - o.y) }
-                            dragging = if (hypot(pts[i].x * size.width - o.x, pts[i].y * size.height - o.y) < grab) i else -1
-                            touch = o
+                            val hs = handles(current)
+                            val i = hs.indices.minBy { (hs[it] - o).getDistance() }
+                            dragging = if ((hs[i] - o).getDistance() < grab) i else -1
+                            touch = if (dragging >= 0) hs[dragging] else o
                         },
-                        onDragEnd = { dragging = -1 },
+                        onDragEnd = {
+                            val done = current
+                            dragging = -1
+                            // Aimantation sur le bord réel (calcul léger, hors du fil principal).
+                            scope.launch {
+                                val snapped = withContext(Dispatchers.Default) { Bitmaps.snap(bitmap, done) }
+                                if (current == done) onChange(snapped)
+                            }
+                        },
                         onDragCancel = { dragging = -1 },
                         onDrag = { change, delta ->
-                            if (dragging >= 0) {
-                                change.consume()
-                                val p = current.points[dragging]
-                                val np = NPoint((p.x + delta.x / size.width).coerceIn(0f, 1f), (p.y + delta.y / size.height).coerceIn(0f, 1f))
-                                touch = Offset(np.x * size.width, np.y * size.height)
-                                onChange(current.with(dragging, np))
+                            if (dragging < 0) return@detectDragGestures
+                            change.consume()
+                            val q = current
+                            val dx = delta.x / size.width; val dy = delta.y / size.height
+                            fun mv(p: NPoint, ax: Float, ay: Float) = NPoint((p.x + ax).coerceIn(0f, 1f), (p.y + ay).coerceIn(0f, 1f))
+                            val nq = if (dragging < 4) {
+                                q.with(dragging, mv(q.points[dragging], dx, dy))
+                            } else {
+                                // Côté : déplacement perpendiculaire au côté, les deux coins ensemble.
+                                val i = dragging - 4; val j = (i + 1) % 4
+                                val a = q.points[i]; val b = q.points[j]
+                                val tx = (b.x - a.x) * size.width; val ty = (b.y - a.y) * size.height
+                                val len = kotlin.math.hypot(tx, ty).coerceAtLeast(1f)
+                                val nx = -ty / len; val ny = tx / len
+                                val d = delta.x * nx + delta.y * ny
+                                val mx = d * nx / size.width; val my = d * ny / size.height
+                                q.with(i, mv(a, mx, my)).with(j, mv(b, mx, my))
                             }
+                            onChange(nq)
+                            touch = handles(nq)[dragging]
                         },
                     )
                 },
             ) {
                 val pts = quad.points.map { Offset(it.x * size.width, it.y * size.height) }
                 val path = Path().apply { moveTo(pts[0].x, pts[0].y); pts.drop(1).forEach { lineTo(it.x, it.y) }; close() }
-                // Assombrit l'extérieur de la zone retenue.
                 val outside = Path().apply { addRect(androidx.compose.ui.geometry.Rect(0f, 0f, size.width, size.height)); addPath(path); fillType = androidx.compose.ui.graphics.PathFillType.EvenOdd }
                 drawPath(outside, Color.Black.copy(alpha = 0.45f))
-                drawPath(path, Color(0xFF4D84FF), style = Stroke(width = 3.dp.toPx()))
-                pts.forEach { drawCircle(Color.White, 12.dp.toPx(), it); drawCircle(Color(0xFF1E5EFF), 8.dp.toPx(), it) }
+                drawPath(path, Color(0xFF4D84FF), style = Stroke(width = 2.5.dp.toPx()))
+                // Poignées de côté (barres) puis coins (ronds).
+                for (i in 0 until 4) {
+                    val a = pts[i]; val b = pts[(i + 1) % 4]; val m = (a + b) / 2f
+                    val len = (b - a).getDistance().coerceAtLeast(1f); val u = (b - a) / len
+                    val half = 14.dp.toPx()
+                    drawLine(Color.White, m - u * half, m + u * half, 9.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                    drawLine(Color(0xFF3B63F5), m - u * half, m + u * half, 5.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                }
+                pts.forEach { drawCircle(Color.White, 12.dp.toPx(), it); drawCircle(Color(0xFF3B63F5), 8.dp.toPx(), it) }
                 if (dragging >= 0) drawLoupe(image, touch, size.width, size.height, path)
             }
         }
@@ -213,6 +269,12 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawLoupe(image: Im
             dstOffset = IntOffset((center.x - r).roundToInt(), (center.y - r).roundToInt()),
             dstSize = IntSize((2 * r).roundToInt(), (2 * r).roundToInt()),
         )
+        // Contour agrandi de la même façon que l'image, pour voir s'il suit le bord de la feuille.
+        val srcX = ((at.x * sx - srcHalfW).roundToInt().coerceIn(0, (image.width - (2 * srcHalfW).roundToInt()).coerceAtLeast(0))) / sx
+        val srcY = ((at.y * sy - srcHalfH).roundToInt().coerceIn(0, (image.height - (2 * srcHalfH).roundToInt()).coerceAtLeast(0))) / sy
+        withTransform({
+            translate(center.x - r, center.y - r); scale(zoom, zoom, Offset.Zero); translate(-srcX, -srcY)
+        }) { drawPath(path, Color(0xFF4D84FF), style = Stroke(width = 1.5.dp.toPx() / zoom)) }
         drawLine(Color(0xFF4D84FF), Offset(center.x - 10, center.y), Offset(center.x + 10, center.y), 2f)
         drawLine(Color(0xFF4D84FF), Offset(center.x, center.y - 10), Offset(center.x, center.y + 10), 2f)
     }

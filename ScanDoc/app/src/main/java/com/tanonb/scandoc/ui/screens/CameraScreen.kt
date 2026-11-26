@@ -36,7 +36,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import com.tanonb.scandoc.ui.Routes
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -96,7 +99,11 @@ fun CameraScreen(nav: NavHostController, docId: Long) {
     LaunchedEffect(Unit) { if (!granted) permission.launch(Manifest.permission.CAMERA) }
 
     val shots = remember { mutableStateListOf<File>() }
-    var flash by remember { mutableStateOf(false) }
+    var flash by remember { mutableStateOf(ImageCapture.FLASH_MODE_AUTO) }
+    var autoCapture by remember { mutableStateOf(true) }
+    var stableSince by remember { mutableStateOf(0L) }
+    var lastAutoShot by remember { mutableStateOf(0L) }
+    var autoShotQuad by remember { mutableStateOf<Quad?>(null) }
     var capturing by remember { mutableStateOf(false) }
     var liveQuad by remember { mutableStateOf<Quad?>(null) }
     var progress by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -114,7 +121,11 @@ fun CameraScreen(nav: NavHostController, docId: Long) {
                 val now = System.currentTimeMillis()
                 if (now - last > 250) {
                     last = now
-                    liveQuad = runCatching { detectFrame(image) }.getOrNull()?.takeUnless { q -> q.isFull }
+                    val q = runCatching { detectFrame(image) }.getOrNull()?.takeUnless { q -> q.isFull }
+                    val prev = liveQuad
+                    // Contour stable depuis combien de temps ? (sert à la prise automatique)
+                    stableSince = if (q != null && prev != null && q.closeTo(prev)) stableSince.takeIf { it > 0 } ?: now else 0L
+                    liveQuad = q
                 }
                 image.close()
             }
@@ -123,7 +134,7 @@ fun CameraScreen(nav: NavHostController, docId: Long) {
     DisposableEffect(Unit) {
         onDispose { analysisExecutor.shutdown(); runCatching { ProcessCameraProvider.getInstance(context).get().unbindAll() } }
     }
-    LaunchedEffect(flash) { capture.flashMode = if (flash) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF }
+    LaunchedEffect(flash) { capture.flashMode = flash }
 
     fun finish() {
         if (shots.isEmpty()) { nav.popBackStack(); return }
@@ -160,13 +171,35 @@ fun CameraScreen(nav: NavHostController, docId: Long) {
         )
     }
 
+    // Prise automatique : document détecté et immobile pendant 1,2 s (une photo au plus toutes les 3 s).
+    LaunchedEffect(stableSince, autoCapture) {
+        if (!autoCapture || stableSince == 0L) return@LaunchedEffect
+        kotlinx.coroutines.delay(1200)
+        val now = System.currentTimeMillis()
+        val q = liveQuad
+        // Pas de nouvelle photo tant que la même page reste sous l'objectif : il faut la changer.
+        if (q != null && stableSince != 0L && now - lastAutoShot > 3000 && autoShotQuad?.closeTo(q, 0.06f) != true) {
+            lastAutoShot = now; autoShotQuad = q; takePicture()
+        }
+    }
+
     BackHandler { if (shots.isNotEmpty()) confirmQuit = true else nav.popBackStack() }
 
     Column(Modifier.fillMaxSize().background(Color.Black).statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { if (shots.isNotEmpty()) confirmQuit = true else nav.popBackStack() }) { Icon(Icons.Filled.Close, "Fermer", tint = Color.White) }
             Text("Document", color = Color.White, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            IconButton(onClick = { flash = !flash }) { Icon(if (flash) Icons.Filled.FlashOn else Icons.Filled.FlashOff, "Flash", tint = Color.White) }
+            androidx.compose.material3.TextButton(onClick = { autoCapture = !autoCapture }) {
+                Text(if (autoCapture) "Prise auto" else "Manuel", color = if (autoCapture) Accent else Color.White)
+            }
+            IconButton(onClick = {
+                flash = when (flash) { ImageCapture.FLASH_MODE_AUTO -> ImageCapture.FLASH_MODE_ON; ImageCapture.FLASH_MODE_ON -> ImageCapture.FLASH_MODE_OFF; else -> ImageCapture.FLASH_MODE_AUTO }
+            }) {
+                Icon(
+                    when (flash) { ImageCapture.FLASH_MODE_AUTO -> Icons.Filled.FlashAuto; ImageCapture.FLASH_MODE_ON -> Icons.Filled.FlashOn; else -> Icons.Filled.FlashOff },
+                    "Flash", tint = Color.White,
+                )
+            }
         }
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             if (granted) {
@@ -198,7 +231,11 @@ fun CameraScreen(nav: NavHostController, docId: Long) {
                     if (capturing) Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.3f)))
                 }
                 Text(
-                    if (liveQuad != null) "Document détecté" else "Cadrez le document",
+                    when {
+                        liveQuad == null -> "Cadrez le document"
+                        autoCapture -> "Ne bougez plus…"
+                        else -> "Document détecté"
+                    },
                     color = Color.White, style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.align(Alignment.BottomCenter).padding(8.dp).background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50)).padding(horizontal = 14.dp, vertical = 6.dp),
                 )
@@ -214,6 +251,9 @@ fun CameraScreen(nav: NavHostController, docId: Long) {
             Modifier.fillMaxWidth().height(120.dp).padding(horizontal = 24.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
         ) {
+            IconButton(onClick = { nav.popBackStack(); nav.navigate(Routes.gallery(docId)) }, enabled = shots.isEmpty()) {
+                Icon(Icons.Outlined.PhotoLibrary, "Importer des photos", tint = if (shots.isEmpty()) Color.White else Color.Gray, modifier = Modifier.size(30.dp))
+            }
             Box(Modifier.size(64.dp)) {
                 shots.lastOrNull()?.let {
                     FileThumbnail(it.absolutePath, maxDim = 200, modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(6.dp)).border(2.dp, Color.White, RoundedCornerShape(6.dp)))
@@ -239,20 +279,24 @@ fun CameraScreen(nav: NavHostController, docId: Long) {
     progress?.let { (i, n) -> BusyOverlay("Recadrage de la page ${minOf(i + 1, n)} sur $n…", if (n > 0) i.toFloat() / n else null) }
 }
 
-/** Détection sur le plan de luminance (Y) d'une image d'analyse, ramenée dans le sens d'affichage. */
+/** Détection sur une image d'analyse YUV (couleur comprise), ramenée dans le sens d'affichage. */
 private fun detectFrame(image: ImageProxy): Quad? {
-    val plane = image.planes[0]
-    val buf = plane.buffer
-    val rowStride = plane.rowStride
-    val pixelStride = plane.pixelStride
-    val step = maxOf(1, image.width / 200)
+    val yP = image.planes[0]; val uP = image.planes[1]; val vP = image.planes[2]
+    val step = maxOf(1, image.width / 180)
     val w = image.width / step
     val h = image.height / step
-    val lum = IntArray(w * h)
+    val px = IntArray(w * h)
     for (y in 0 until h) for (x in 0 until w) {
-        lum[y * w + x] = buf.get(y * step * rowStride + x * step * pixelStride).toInt() and 0xff
+        val sx = x * step; val sy = y * step
+        val yy = yP.buffer.get(sy * yP.rowStride + sx * yP.pixelStride).toInt() and 0xff
+        val u = (uP.buffer.get((sy / 2) * uP.rowStride + (sx / 2) * uP.pixelStride).toInt() and 0xff) - 128
+        val v = (vP.buffer.get((sy / 2) * vP.rowStride + (sx / 2) * vP.pixelStride).toInt() and 0xff) - 128
+        val r = (yy + 1.402f * v).toInt().coerceIn(0, 255)
+        val g = (yy - 0.344f * u - 0.714f * v).toInt().coerceIn(0, 255)
+        val b = (yy + 1.772f * u).toInt().coerceIn(0, 255)
+        px[y * w + x] = (0xff shl 24) or (r shl 16) or (g shl 8) or b
     }
-    val q = DocumentDetector.detect(lum, w, h) ?: return null
+    val q = DocumentDetector.detectArgb(px, w, h, quick = true) ?: return null
     val rot = image.imageInfo.rotationDegrees
     fun r(p: NPoint) = when (rot) {
         90 -> NPoint(1 - p.y, p.x)
@@ -262,3 +306,7 @@ private fun detectFrame(image: ImageProxy): Quad? {
     }
     return Quad.ordered(q.points.map(::r))
 }
+
+/** Les deux contours sont-ils quasi identiques (document immobile) ? */
+private fun Quad.closeTo(o: Quad, tol: Float = 0.025f) =
+    points.zip(o.points).all { (a, b) -> kotlin.math.abs(a.x - b.x) < tol && kotlin.math.abs(a.y - b.y) < tol }

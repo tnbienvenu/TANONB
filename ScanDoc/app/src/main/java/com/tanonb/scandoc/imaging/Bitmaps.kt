@@ -86,6 +86,17 @@ object Bitmaps {
         return q
     }
 
+    /** Aimante un recadrage manuel sur les bords réels de la feuille. */
+    fun snap(b: Bitmap, q: Quad): Quad {
+        val f = 256f / max(b.width, b.height)
+        val small = Bitmap.createScaledBitmap(b, (b.width * f).roundToInt().coerceAtLeast(16), (b.height * f).roundToInt().coerceAtLeast(16), true)
+        val px = IntArray(small.width * small.height)
+        small.getPixels(px, 0, small.width, 0, 0, small.width, small.height)
+        val out = DocumentDetector.snap(px, small.width, small.height, q)
+        if (small !== b) small.recycle()
+        return out
+    }
+
     /** Recadrage avec correction de perspective : le quadrilatère est projeté sur un rectangle. */
     fun warp(src: Bitmap, q: Quad, maxDim: Int = PROCESSED_MAX): Bitmap {
         val w = src.width.toFloat(); val h = src.height.toFloat()

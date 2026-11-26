@@ -57,9 +57,11 @@ private val thumbCache = object : LruCache<String, Bitmap>((Runtime.getRuntime()
 fun FileThumbnail(path: String?, modifier: Modifier = Modifier, maxDim: Int = 400, contentScale: ContentScale = ContentScale.Crop) {
     val file = path?.let { File(it) }
     val key = file?.let { "${it.absolutePath}:${it.lastModified()}:$maxDim" }
+    // Quand la page change (filtre, recadrage…), la clé change : on recharge l'image au lieu de garder l'ancienne.
     val bmp by produceState<Bitmap?>(key?.let { thumbCache.get(it) }, key) {
-        if (key == null || value != null) return@produceState
-        value = withContext(Dispatchers.IO) { Bitmaps.thumbnail(file, maxDim)?.also { thumbCache.put(key, it) } }
+        if (key == null) { value = null; return@produceState }
+        val cached = thumbCache.get(key)
+        value = cached ?: withContext(Dispatchers.IO) { Bitmaps.thumbnail(file, maxDim)?.also { thumbCache.put(key, it) } } ?: value
     }
     Box(modifier.background(Color(0xFFE9EBF0)), contentAlignment = Alignment.Center) {
         bmp?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = contentScale) }
