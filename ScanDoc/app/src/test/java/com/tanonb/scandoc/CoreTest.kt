@@ -49,6 +49,20 @@ class CoreTest {
         }
     }
 
+    /** Photo réaliste : facture en perspective sur une table en bois, ombre sur la gauche (coins connus). */
+    @Test fun detectsSheetOnRealisticPhoto() {
+        val raw = javaClass.classLoader!!.getResourceAsStream("photo_192x256.rgb")!!.readBytes()
+        val w = 192; val h = 256
+        val px = IntArray(w * h) { i -> (0xff shl 24) or ((raw[3 * i].toInt() and 0xff) shl 16) or ((raw[3 * i + 1].toInt() and 0xff) shl 8) or (raw[3 * i + 2].toInt() and 0xff) }
+        val q = DocumentDetector.detectArgb(px, w, h)
+        assertNotNull(q)
+        // Coins dans la photo 1500×2000 : (220,260) (1290,180) (1380,1820) (160,1760)
+        val expected = listOf(220f / 1500 to 260f / 2000, 1290f / 1500 to 180f / 2000, 1380f / 1500 to 1820f / 2000, 160f / 1500 to 1760f / 2000)
+        q!!.points.zip(expected).forEach { (p, e) ->
+            assertTrue("coin ${p.x},${p.y} attendu $e", abs(p.x - e.first) < 0.04f && abs(p.y - e.second) < 0.04f)
+        }
+    }
+
     @Test fun noDocumentOnUniformImage() {
         assertNull(DocumentDetector.detectArgb(IntArray(200 * 200) { 0xFF808080.toInt() }, 200, 200))
     }
