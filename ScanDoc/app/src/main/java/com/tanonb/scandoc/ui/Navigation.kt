@@ -3,7 +3,6 @@ package com.tanonb.scandoc.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,20 +52,21 @@ fun NavHostController.openNewDocument(id: Long) {
 @Composable
 fun ScanDocNav(activity: MainActivity) {
     val nav = rememberNavController()
-    val incoming by activity.incoming.collectAsState()
     var importing by remember { mutableStateOf(false) }
 
     // Fichiers partagés depuis une autre application → nouveau document.
-    LaunchedEffect(incoming) {
-        if (incoming.isEmpty()) return@LaunchedEffect
-        val uris = incoming
-        activity.incoming.value = emptyList()
-        importing = true
-        val id = runCatching {
-            activity.app.background { createWithPages(uris.map { PageSource.FromUri(it) }, autoCrop = activity.app.settings.current.autoCrop, name = defaultName("Import")) }
-        }.getOrNull()
-        importing = false
-        if (id != null) nav.openNewDocument(id) else activity.toast("Impossible d'importer ces fichiers.")
+    LaunchedEffect(Unit) {
+        // Collecte continue : vider la file ne doit pas annuler l'importation en cours.
+        activity.incoming.collect { uris ->
+            if (uris.isEmpty()) return@collect
+            activity.incoming.value = emptyList()
+            importing = true
+            val id = runCatching {
+                activity.app.background { createWithPages(uris.map { PageSource.FromUri(it) }, autoCrop = activity.app.settings.current.autoCrop, name = defaultName("Import")) }
+            }.getOrNull()
+            importing = false
+            if (id != null) nav.openNewDocument(id) else activity.toast("Impossible d'importer ces fichiers.")
+        }
     }
 
     Box {

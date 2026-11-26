@@ -83,7 +83,12 @@ object DocumentDetector {
         // La zone doit ressembler à un quadrilatère (et non à une forme quelconque).
         if (filled / qArea < 0.80) return null
 
-        val norm = quad.map { NPoint((it[0] / w).coerceIn(0f, 1f), (it[1] / h).coerceIn(0f, 1f)) }
+        // Léger retrait vers le centre : évite de garder un liseré du fond sur les bords.
+        val cx = quad.sumOf { it[0].toDouble() }.toFloat() / 4; val cy = quad.sumOf { it[1].toDouble() }.toFloat() / 4
+        val norm = quad.map {
+            val x = it[0] + (cx - it[0]) * 0.012f; val y = it[1] + (cy - it[1]) * 0.012f
+            NPoint((x / w).coerceIn(0f, 1f), (y / h).coerceIn(0f, 1f))
+        }
         val q = Quad.ordered(norm)
         val nearFull = q.points.zip(Quad.FULL.points).all { (a, b) -> abs(a.x - b.x) < 0.025f && abs(a.y - b.y) < 0.025f }
         return if (nearFull) Quad.FULL else q
