@@ -15,6 +15,7 @@ data class AppSettings(
     val showBanner: Boolean = true,
     val searchablePdf: Boolean = true,
     val flatten: Boolean = true,
+    val showPreview: Boolean = true,
 )
 
 class SettingsStore(context: Context) {
@@ -31,6 +32,7 @@ class SettingsStore(context: Context) {
         showBanner = prefs.getBoolean("showBanner", true),
         searchablePdf = prefs.getBoolean("searchablePdf", true),
         flatten = prefs.getBoolean("flatten", true),
+        showPreview = prefs.getBoolean("showPreview", true),
     ).also { com.tanonb.scandoc.imaging.Bitmaps.flattenEnabled = it.flatten }
 
     fun update(transform: (AppSettings) -> AppSettings) {
@@ -43,6 +45,7 @@ class SettingsStore(context: Context) {
             .putBoolean("showBanner", s.showBanner)
             .putBoolean("searchablePdf", s.searchablePdf)
             .putBoolean("flatten", s.flatten)
+            .putBoolean("showPreview", s.showPreview)
             .apply()
         _state.value = s
         com.tanonb.scandoc.imaging.Bitmaps.flattenEnabled = s.flatten

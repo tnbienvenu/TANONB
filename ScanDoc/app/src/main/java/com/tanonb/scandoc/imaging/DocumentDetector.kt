@@ -21,6 +21,11 @@ import kotlin.math.sqrt
  * (reflets) ; c'est la couleur et le contour, pas la luminosité, qui la distinguent.
  */
 object DocumentDetector {
+    /** Journal de mise au point (bancs d'essai). */
+    internal var debugLog: ((String) -> Unit)? = null
+    internal var STUCK_PENALTY = 0.5f
+    internal var VOTE_TOL = 0.03f
+    internal var USE_VOTE = false
 
     /** Détection sur des pixels ARGB. Renvoie null si aucun document n'est trouvé de façon fiable. */
     fun detectArgb(px: IntArray, w: Int, h: Int, quick: Boolean = false): Quad? {
@@ -53,7 +58,7 @@ object DocumentDetector {
         while (y < cy + ry) { var x = cx - rx; while (x < cx + rx) { seeds += y * w + x; x += 2 }; y += 2 }
 
         val masks = ArrayList<BooleanArray>()
-        val tolerances = if (quick) floatArrayOf(14f, 24f, 42f) else floatArrayOf(10f, 14f, 18f, 24f, 32f, 42f, 55f)
+        val tolerances = floatArrayOf(10f, 14f, 18f, 24f, 32f, 42f, 55f)
         for (t in tolerances) masks += BooleanArray(n) { distB[it] < t }
         // Candidats « clairs et peu colorés » (fonds sombres, cas classiques).
         val sc = FloatArray(n) {
@@ -62,15 +67,33 @@ object DocumentDetector {
         }
         val scB = blur(sc, w, h, 2)
         val sorted = scB.copyOf().also { it.sort() }
-        for (pct in if (quick) intArrayOf(55, 75) else intArrayOf(50, 60, 70, 80)) {
+        for (pct in intArrayOf(50, 60, 70, 80)) {
             val t = sorted[(n - 1) * pct / 100]
             masks += BooleanArray(n) { scB[it] > t }
         }
 
-        var best: Pair<Float, List<FloatArray>>? = null
-        for (raw in masks) {
-            val m = dilate(erode(raw, w, h, 2), w, h, 2)
-            val comp = component(m, w, h, seeds)
+        // Candidats « contours » : zone qui s'étend depuis le centre jusqu'aux bords nets (une ombre douce ne l'arrête pas).
+        val grad = FloatArray(n)
+        for (yy in 0 until h - 1) for (xx in 0 until w - 1) {
+            val i = yy * w + xx
+            val gx = abs(img.r[i + 1] - img.r[i]) + abs(img.g[i + 1] - img.g[i]) + abs(img.b[i + 1] - img.b[i])
+            val gy = abs(img.r[i + w] - img.r[i]) + abs(img.g[i + w] - img.g[i]) + abs(img.b[i + w] - img.b[i])
+            grad[i] = max(gx, gy)
+        }
+        val edgeMasks = ArrayList<BooleanArray>()
+        for (t in floatArrayOf(10f, 14f, 20f, 28f)) {
+            // Bords épaissis d'un pixel pour fermer les petites interruptions du contour.
+            val edges = dilate(BooleanArray(n) { grad[it] > t }, w, h, 1)
+            edgeMasks += BooleanArray(n) { !edges[it] }
+        }
+
+        val valid = ArrayList<Pair<Float, List<FloatArray>>>()
+        for ((index, raw) in (masks + edgeMasks).withIndex()) {
+            val fromEdges = index >= masks.size
+            // Zones bornées par les contours : on referme (dilatation) au lieu d'ouvrir, pour englober le texte.
+            val m = if (fromEdges) raw else dilate(erode(raw, w, h, 2), w, h, 2)
+            val comp0 = component(m, w, h, seeds)
+            val comp = if (fromEdges) erode(dilate(comp0, w, h, 2), w, h, 2) else comp0
             val size = comp.count { it }
             if (size < n * 0.08) continue
             val quad = quadOf(comp, w, h) ?: continue
@@ -81,12 +104,28 @@ object DocumentDetector {
             val solid = n - outside.count { it }
             val fill = min(solid / qa, qa / max(solid.toDouble(), 1.0)).toFloat()
             val es = edgeSupport(img, quad)
-            val score = es * fill * fill * (0.5f + 0.5f * min(1f, (qa / (0.25 * n)).toFloat()))
+            val score = es * fill * (0.5f + 0.5f * min(1f, (qa / (0.3 * n)).toFloat()))
             // Sans vrai bord visible (moins de la moitié du contour), ce n'est pas une feuille.
             if (es < 0.55f) continue
-            if (best == null || score > best.first) best = score to quad
+            // Une feuille photographiée est presque toujours entière dans le cadre : un contour dont plusieurs coins
+            // collent aux bords de l'image est en général le sol, la table ou un drap (faux positif).
+            val stuck = quad.count { it[0] < w * 0.03f || it[0] > w * 0.97f || it[1] < h * 0.03f || it[1] > h * 0.97f }
+            if (stuck >= 2) continue
+            val adjusted = if (stuck == 1) score * STUCK_PENALTY else score
+            // Un document contient du texte ou des marques : un carreau, un mur ou un drap uni n'en ont pas.
+            val marks = marksInside(grad, quad, w, h)
+            debugLog?.invoke(String.format("cand %2d %s aire=%.2f rempl=%.2f bord=%.2f marques=%d score=%.3f", index, if (fromEdges) "contour" else "couleur", qa / n, fill, es, marks, score))
+            if (marks < 12) continue
+            valid += adjusted to orderCorners(quad)
         }
-        val (score, quad0) = best ?: return null
+        if (valid.isEmpty()) return null
+        // Vote : le contour retrouvé par le plus de méthodes l'emporte (un reflet ou un objet voisin n'en piège qu'une).
+        val tol = VOTE_TOL * max(w, h)
+        fun close(a: List<FloatArray>, b: List<FloatArray>) = (0 until 4).all { hypot(a[it][0] - b[it][0], a[it][1] - b[it][1]) < tol }
+        val support = valid.map { (own, qa) -> if (!USE_VOTE) own.toDouble() else valid.sumOf { (sc, qb) -> if (close(qa, qb)) sc.toDouble() else 0.0 } }
+        val bestIndex = valid.indices.maxWith(compareBy<Int>({ support[it] }, { valid[it].first }))
+        debugLog?.invoke("vote : " + valid.indices.joinToString(" ") { String.format("%.2f", support[it]) })
+        val (score, quad0) = valid[bestIndex]
         if (score < 0.35f) return null
         val quad = refine(img, quad0)
         val q = Quad.ordered(quad.map { NPoint((it[0] / w).coerceIn(0f, 1f), (it[1] / h).coerceIn(0f, 1f)) })
@@ -105,7 +144,7 @@ object DocumentDetector {
         for (i in 0 until n) { val c = px[i]; r[i] = ((c shr 16) and 0xff).toFloat(); g[i] = ((c shr 8) and 0xff).toFloat(); b[i] = (c and 0xff).toFloat() }
         val img = Rgb(w, h, blur(r, w, h, 1), blur(g, w, h, 1), blur(b, w, h, 1))
         val pts = quad.points.map { floatArrayOf(it.x * w, it.y * h) }
-        val out = refine(img, pts)
+        val out = refine(img, pts, range = 6, maxMove = 9f)
         return Quad(
             NPoint((out[0][0] / w).coerceIn(0f, 1f), (out[0][1] / h).coerceIn(0f, 1f)),
             NPoint((out[1][0] / w).coerceIn(0f, 1f), (out[1][1] / h).coerceIn(0f, 1f)),
@@ -144,35 +183,72 @@ object DocumentDetector {
         return if (tot == 0f) 0f else good / tot
     }
 
-    private fun lineStrength(img: Rgb, ax: Float, ay: Float, bx: Float, by: Float): Float {
+    /** Couleur de référence du papier (médiane des pixels clairs autour du centre du quadrilatère). */
+    internal class Paper(val l: Float, val c1: Float, val c2: Float) {
+        fun distance(img: Rgb, i: Int): Float {
+            val r = img.r[i]; val g = img.g[i]; val b = img.b[i]
+            val a = 1.6f * (r - g - c1); val bb = 1.6f * ((r + g) / 2 - b - c2); val ll = 0.45f * (0.299f * r + 0.587f * g + 0.114f * b - l)
+            return sqrt(a * a + bb * bb + ll * ll)
+        }
+    }
+
+    private fun paperAround(img: Rgb, q: List<FloatArray>): Paper {
+        val cx = q.sumOf { it[0].toDouble() }.toFloat() / 4; val cy = q.sumOf { it[1].toDouble() }.toFloat() / 4
+        val rx = max(2, img.w / 12); val ry = max(2, img.h / 12)
+        val idx = ArrayList<Int>()
+        for (y in (cy - ry).toInt()..(cy + ry).toInt()) for (x in (cx - rx).toInt()..(cx + rx).toInt())
+            if (x in 0 until img.w && y in 0 until img.h) idx += y * img.w + x
+        fun lum(i: Int) = 0.299f * img.r[i] + 0.587f * img.g[i] + 0.114f * img.b[i]
+        if (idx.isEmpty()) return Paper(200f, 0f, 0f)
+        val ml = median(idx.map(::lum))
+        val br = idx.filter { lum(it) >= ml }
+        return Paper(median(br.map(::lum)), median(br.map { img.r[it] - img.g[it] }), median(br.map { (img.r[it] + img.g[it]) / 2 - img.b[it] }))
+    }
+
+    /**
+     * Netteté d'une ligne comme bord de feuille : saut de couleur, compté seulement si l'intérieur ressemble
+     * au papier et l'extérieur non (une ligne de texte ou de tableau à l'intérieur de la feuille ne compte pas).
+     */
+    private fun lineStrength(img: Rgb, paper: Paper, cx: Float, cy: Float, ax: Float, ay: Float, bx: Float, by: Float): Float {
         val len = hypot(bx - ax, by - ay); if (len < 1) return 0f
-        val nx = -(by - ay) / len; val ny = (bx - ax) / len
+        var nx = -(by - ay) / len; var ny = (bx - ax) / len
+        if (((ax + bx) / 2 - cx) * nx + ((ay + by) / 2 - cy) * ny < 0) { nx = -nx; ny = -ny }
         var tot = 0f; var cnt = 0
-        for (k in 0 until 20) {
-            val s = 0.08f + 0.84f * k / 19
+        for (k in 0 until 24) {
+            val s = 0.06f + 0.88f * k / 23
             val px = ax + (bx - ax) * s; val py = ay + (by - ay) * s
-            val x1 = px + nx * 1.5f; val y1 = py + ny * 1.5f; val x2 = px - nx * 1.5f; val y2 = py - ny * 1.5f
-            if (!img.inside(x1, y1) || !img.inside(x2, y2)) continue
-            tot += min(img.diff(x1, y1, x2, y2), 80f); cnt++
+            val ox = px + nx * 2f; val oy = py + ny * 2f; val ix = px - nx * 2f; val iy = py - ny * 2f
+            if (!img.inside(ox, oy) || !img.inside(ix, iy)) continue
+            cnt++
+            val inner = iy.toInt() * img.w + ix.toInt(); val outer = oy.toInt() * img.w + ox.toInt()
+            if (paper.distance(img, inner) < 40f && paper.distance(img, outer) >= 40f) tot += min(img.diff(ox, oy, ix, iy), 80f)
         }
         return if (cnt == 0) 0f else tot / cnt
     }
 
-    /** Aimante chaque côté sur le bord réel le plus net (±4 px), puis recalcule les coins. */
-    private fun refine(img: Rgb, q: List<FloatArray>): List<FloatArray> {
+    /**
+     * Aimante chaque côté sur le vrai bord papier → fond : recherche large (±[range] px) puis fine,
+     * coins recalculés par intersection des côtés.
+     */
+    private fun refine(img: Rgb, q: List<FloatArray>, range: Int = 4, maxMove: Float = 8f): List<FloatArray> {
+        val paper = paperAround(img, q)
+        val cx = q.sumOf { it[0].toDouble() }.toFloat() / 4; val cy = q.sumOf { it[1].toDouble() }.toFloat() / 4
         val lines = Array(4) { FloatArray(4) }
         for (i in 0 until 4) {
             val a = q[i]; val b = q[(i + 1) % 4]
-            val len = hypot(b[0] - a[0], b[1] - a[1])
+            val len = hypot(b[0] - a[0], b[1] - a[1]).coerceAtLeast(1f)
             val nx = -(b[1] - a[1]) / len; val ny = (b[0] - a[0]) / len
-            var bestV = lineStrength(img, a[0], a[1], b[0], b[1])
-            var line = floatArrayOf(a[0], a[1], b[0], b[1])
-            for (da in -4..4) for (db in -4..4) {
-                val ax = a[0] + nx * da; val ay = a[1] + ny * da; val bx = b[0] + nx * db; val by = b[1] + ny * db
-                val v = lineStrength(img, ax, ay, bx, by)
-                if (v > bestV + 0.5f) { bestV = v; line = floatArrayOf(ax, ay, bx, by) }
+            var bestV = lineStrength(img, paper, cx, cy, a[0], a[1], b[0], b[1])
+            var bestA = 0f; var bestB = 0f
+            fun tryOffsets(da: Float, db: Float) {
+                val v = lineStrength(img, paper, cx, cy, a[0] + nx * da, a[1] + ny * da, b[0] + nx * db, b[1] + ny * db)
+                if (v > bestV + 0.5f) { bestV = v; bestA = da; bestB = db }
             }
-            lines[i] = line
+            for (da in -range..range) for (db in -range..range) tryOffsets(da.toFloat(), db.toFloat())
+            val ca = bestA; val cb = bestB
+            var fa = -1f
+            while (fa <= 1f) { var fb = -1f; while (fb <= 1f) { tryOffsets(ca + fa, cb + fb); fb += 0.5f }; fa += 0.5f }
+            lines[i] = floatArrayOf(a[0] + nx * bestA, a[1] + ny * bestA, b[0] + nx * bestB, b[1] + ny * bestB)
         }
         return List(4) { i ->
             val l1 = lines[(i + 3) % 4]; val l2 = lines[i]
@@ -181,11 +257,57 @@ object DocumentDetector {
             if (abs(den) < 1e-6f) return@List q[i]
             val t = ((l2[0] - l1[0]) * d2y - (l2[1] - l1[1]) * d2x) / den
             val p = floatArrayOf(l1[0] + d1x * t, l1[1] + d1y * t)
-            if (hypot(p[0] - q[i][0], p[1] - q[i][1]) > 8) q[i] else p
+            if (hypot(p[0] - q[i][0], p[1] - q[i][1]) > maxMove) q[i] else p
         }
     }
 
     // ------------------------------------------------------------------ outils
+
+    /** Remet les coins dans l'ordre haut-gauche, haut-droit, bas-droit, bas-gauche (pour comparer des contours). */
+    private fun orderCorners(q: List<FloatArray>): List<FloatArray> {
+        val tl = q.minBy { it[0] + it[1] }; val br = q.maxBy { it[0] + it[1] }
+        val rest = q.filter { it !== tl && it !== br }.ifEmpty { q }
+        return listOf(tl, rest.maxBy { it[0] - it[1] }, br, rest.minBy { it[0] - it[1] })
+    }
+
+    /**
+     * Nombre de petites marques distinctes (lettres, mots, traits) à l'intérieur du quadrilatère rétréci de 10 %.
+     * Un document en contient beaucoup ; un carrelage, un mur ou un drap uni n'en ont que quelques longues (joints, plis).
+     */
+    private fun marksInside(grad: FloatArray, quad: List<FloatArray>, w: Int, h: Int): Int {
+        val cx = quad.sumOf { it[0].toDouble() }.toFloat() / 4; val cy = quad.sumOf { it[1].toDouble() }.toFloat() / 4
+        val q = quad.map { floatArrayOf(cx + (it[0] - cx) * 0.9f, cy + (it[1] - cy) * 0.9f) }
+        val x0 = q.minOf { it[0] }.toInt().coerceAtLeast(0); val x1 = q.maxOf { it[0] }.toInt().coerceAtMost(w - 1)
+        val y0 = q.minOf { it[1] }.toInt().coerceAtLeast(0); val y1 = q.maxOf { it[1] }.toInt().coerceAtMost(h - 1)
+        val ink = BooleanArray(w * h)
+        for (y in y0..y1) for (x in x0..x1) {
+            var inside = true
+            for (i in 0 until 4) {
+                val a = q[i]; val b = q[(i + 1) % 4]
+                if ((b[0] - a[0]) * (y - a[1]) - (b[1] - a[1]) * (x - a[0]) < 0) { inside = false; break }
+            }
+            if (inside && grad[y * w + x] > 30f) ink[y * w + x] = true
+        }
+        // Composantes connexes (8-voisinage) ; les très longues (joints, plis) ne comptent qu'une fois, les points isolés pas du tout.
+        val seen = BooleanArray(w * h); val stack = IntArray(w * h)
+        var count = 0
+        for (start in ink.indices) {
+            if (!ink[start] || seen[start]) continue
+            var top = 0; stack[top++] = start; seen[start] = true; var size = 0
+            while (top > 0) {
+                val p = stack[--top]; size++
+                val px = p % w; val py = p / w
+                for (dy in -1..1) for (dx in -1..1) {
+                    val nx = px + dx; val ny = py + dy
+                    if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
+                    val j = ny * w + nx
+                    if (ink[j] && !seen[j]) { seen[j] = true; stack[top++] = j }
+                }
+            }
+            if (size >= 2) count++
+        }
+        return count
+    }
 
     private fun median(v: List<Float>): Float = if (v.isEmpty()) 0f else v.sorted()[v.size / 2]
 

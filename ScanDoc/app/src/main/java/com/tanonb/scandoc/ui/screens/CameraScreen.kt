@@ -119,7 +119,7 @@ fun CameraScreen(nav: NavHostController, docId: Long) {
             var last = 0L
             it.setAnalyzer(analysisExecutor) { image ->
                 val now = System.currentTimeMillis()
-                if (now - last > 250) {
+                if (now - last > 350) {
                     last = now
                     val q = runCatching { detectFrame(image) }.getOrNull()?.takeUnless { q -> q.isFull }
                     val prev = liveQuad
@@ -267,8 +267,16 @@ fun CameraScreen(nav: NavHostController, docId: Long) {
                 shape = CircleShape, color = Color.White,
                 modifier = Modifier.size(78.dp).border(4.dp, Accent, CircleShape),
             ) {}
-            Box(Modifier.width(96.dp), contentAlignment = Alignment.CenterEnd) {
-                if (shots.isNotEmpty()) Button(onClick = ::finish) { Text("Terminer") }
+            // Bouton « OK » rond, à droite du déclencheur (comme les applications de numérisation).
+            Box(Modifier.size(64.dp), contentAlignment = Alignment.Center) {
+                if (shots.isNotEmpty()) Surface(
+                    onClick = ::finish, shape = CircleShape, color = Accent,
+                    modifier = Modifier.size(60.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("OK", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
             }
         }
     }

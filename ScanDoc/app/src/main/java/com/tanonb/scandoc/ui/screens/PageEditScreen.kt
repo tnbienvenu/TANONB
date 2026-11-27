@@ -90,6 +90,7 @@ fun PageEditScreen(nav: NavHostController, pageId: Long) {
     var filter by remember { mutableStateOf<PageFilter?>(null) }
     var saving by remember { mutableStateOf(false) }
     var preview by remember { mutableStateOf<Bitmap?>(null) }
+    var showPreview by remember { mutableStateOf(context.app.settings.current.showPreview) }
 
     val loaded = data
     if (loaded != null && quad == null) {
@@ -127,14 +128,29 @@ fun PageEditScreen(nav: NavHostController, pageId: Long) {
         Column(Modifier.fillMaxSize().padding(padding)) {
             Box(Modifier.weight(1f).fillMaxWidth().background(Color.Black).padding(horizontal = 24.dp, vertical = 32.dp), contentAlignment = Alignment.Center) {
                 if (loaded != null && quad != null) CropEditor(loaded.second, quad!!) { quad = it }
-                preview?.let { pv ->
-                    Column(Modifier.align(Alignment.BottomEnd), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Image(
-                            pv.asImageBitmap(), "Aperçu du résultat",
-                            Modifier.size(96.dp, 128.dp).background(Color.White).padding(2.dp), contentScale = ContentScale.Fit,
-                        )
-                        Text("Aperçu", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                // Aperçu du résultat : fermable (croix) pour dégager la photo, réouvrable d'un appui.
+                val pv = preview
+                if (pv != null && showPreview) {
+                    Box(Modifier.align(Alignment.BottomEnd)) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Image(
+                                pv.asImageBitmap(), "Aperçu du résultat",
+                                Modifier.size(96.dp, 128.dp).background(Color.White).padding(2.dp), contentScale = ContentScale.Fit,
+                            )
+                            Text("Aperçu", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                        }
+                        androidx.compose.material3.Surface(
+                            onClick = { showPreview = false; context.app.settings.update { it.copy(showPreview = false) } },
+                            shape = androidx.compose.foundation.shape.CircleShape, color = Color.Black.copy(alpha = 0.75f),
+                            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(28.dp),
+                        ) { Box(contentAlignment = Alignment.Center) { Icon(Icons.Filled.Close, "Fermer l'aperçu", tint = Color.White, modifier = Modifier.size(18.dp)) } }
                     }
+                } else if (pv != null) {
+                    androidx.compose.material3.Surface(
+                        onClick = { showPreview = true; context.app.settings.update { it.copy(showPreview = true) } },
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(50), color = Color.Black.copy(alpha = 0.7f),
+                        modifier = Modifier.align(Alignment.BottomEnd),
+                    ) { Text("Aperçu", color = Color.White, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) }
                 }
             }
             Column(Modifier.navigationBarsPadding().padding(vertical = 8.dp)) {

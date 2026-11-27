@@ -139,6 +139,27 @@ class CoreTest {
         assertEquals(src[29 * w + 39], out[29 * w + 39])
     }
 
+    /**
+     * Scènes de non-régression issues du banc d'essai (fonds variés, reflet, objet voisin, scènes sans document) :
+     * chaque document doit être détecté à moins de 2,5 % près, aucun document inventé sur un sol ou un drap.
+     */
+    @Test fun regressionScenes() {
+        val lines = javaClass.classLoader!!.getResourceAsStream("scenes/manifest.txt")!!.bufferedReader().readLines().filter { it.isNotBlank() }
+        val failures = ArrayList<String>()
+        for (line in lines) {
+            val p = line.trim().split(Regex("\\s+"))
+            val w = p[1].toInt(); val h = p[2].toInt()
+            val raw = javaClass.classLoader!!.getResourceAsStream("scenes/${p[0]}.rgb")!!.readBytes()
+            val px = IntArray(w * h) { i -> (0xff shl 24) or ((raw[3 * i].toInt() and 0xff) shl 16) or ((raw[3 * i + 1].toInt() and 0xff) shl 8) or (raw[3 * i + 2].toInt() and 0xff) }
+            val q = DocumentDetector.detectArgb(px, w, h)
+            if (p[3] == "none") { if (q != null && !q.isFull) failures += "${p[0]} : faux positif" ; continue }
+            if (q == null || q.isFull) { failures += "${p[0]} : non détecté"; continue }
+            val err = (0 until 4).maxOf { i -> maxOf(abs(q.points[i].x - p[3 + 2 * i].toFloat()), abs(q.points[i].y - p[4 + 2 * i].toFloat())) }
+            if (err > 0.025f) failures += "${p[0]} : erreur ${err * 100} %"
+        }
+        assertTrue(failures.joinToString("; "), failures.isEmpty())
+    }
+
     @Test fun noDocumentOnUniformImage() {
         assertNull(DocumentDetector.detectArgb(IntArray(200 * 200) { 0xFF808080.toInt() }, 200, 200))
     }
